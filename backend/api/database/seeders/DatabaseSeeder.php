@@ -12,7 +12,6 @@ class DatabaseSeeder extends Seeder
     {
         $mk = fn ($n, $e, $r) => User::forceCreate(['name' => $n, 'email' => $e, 'role' => $r, 'password' => Hash::make('password')]);
         $mk('Admin Akademik', 'admin@kursus.test', 'admin');
-        $mk('Academic Admin', 'academic@kursus.test', 'academic_admin');
         $teacher = $mk('Pengajar Contoh', 'guru@kursus.test', 'teacher');
         $secondTeacher = $mk('Pengajar Contoh 2', 'guru2@kursus.test', 'teacher');
         $parent = $mk('Orang Tua Contoh', 'ortu@kursus.test', 'parent');
