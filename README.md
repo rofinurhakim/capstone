@@ -92,6 +92,21 @@ Buka [http://127.0.0.1:3000](http://127.0.0.1:3000). Jika isi `.env.local` diuba
 
 Jika port `8001` sudah digunakan, pilih port API lain yang masih tersedia. Sesuaikan opsi `artisan serve --port` dan `NEXT_PUBLIC_API_URL` dengan port tersebut. Jangan arahkan frontend ke aplikasi Laravel lain yang berjalan di komputer yang sama.
 
+## Deploy demo gratis
+
+Konfigurasi deploy backend tersedia di `render.yaml` dan `backend/api/Dockerfile`. Backend memakai PostgreSQL; jangan memakai SQLite di Render Free karena filesystem service bersifat sementara dan dapat dihapus saat restart/deploy.
+
+1. Push repository ke GitHub dan buat database PostgreSQL di Neon. Pilih region Singapore dan simpan host, nama database, username, dan password dari connection details Neon secara privat.
+2. Buat blueprint di Render dengan repository ini dan `render.yaml`. Saat diminta untuk environment variables yang ditandai `sync: false`, isi:
+   - `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, dan `DB_PASSWORD` dari Neon.
+   - `APP_KEY` dengan key Laravel acak yang dibuat secara aman, misalnya lewat `php artisan key:generate --show` pada lingkungan lokal.
+   - `INITIAL_ADMIN_NAME`, `INITIAL_ADMIN_EMAIL`, dan `INITIAL_ADMIN_PASSWORD` untuk membuat akun administrator pertama. Gunakan password acak minimal 16 karakter dan masukkan langsung ke dashboard Render, jangan ke Git atau chat.
+3. Deploy service backend. Docker akan menginstal dependensi produksi, membuat cache konfigurasi, menjalankan migrasi, membuat hanya akun administrator awal (tanpa akun/data demo), lalu melayani API pada port Render. Setelah admin berhasil dibuat dan bisa login, hapus ketiga variabel `INITIAL_ADMIN_*` dari Render dan redeploy agar password awal tidak tersimpan sebagai environment variable.
+4. Di Vercel, impor repository yang sama, atur **Root Directory** menjadi `frontend`, dan tambahkan environment variable `NEXT_PUBLIC_API_URL` dengan URL backend Render ditambah `/api`, misalnya `https://bec-academic-api.onrender.com/api`. Deploy frontend.
+5. Ganti `FRONTEND_URL` di Render dengan domain Vercel yang sebenarnya, lalu redeploy backend. Tes URL backend `/up`, login aplikasi, dan alur data dasar.
+
+Render Free menidurkan web service yang tidak menerima traffic selama 15 menit; request pertama setelah tidur dapat membutuhkan waktu sekitar satu menit. Paket gratis ini untuk demo/pengembangan, bukan produksi dengan jaminan selalu aktif. Jangan masukkan kredensial database, `APP_KEY`, atau token ke GitHub maupun chat.
+
 ## Akun uji lokal
 
 Seeder membuat akun berikut dengan kata sandi `password`:
