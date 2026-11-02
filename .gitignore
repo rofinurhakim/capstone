@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Next.js
+.next/
+out/
+build/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Cache
+*.tsbuildinfo
+.DS_Store
+
+# Laravel
+storage/*.key
+
+
