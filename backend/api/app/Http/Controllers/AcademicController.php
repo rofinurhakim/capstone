@@ -157,7 +157,7 @@ class AcademicController extends Controller
             'birth_date' => $e->student->birth_date,
             'school_name' => $e->student->school_name,
             'school_class' => $e->student->school_class,
-            'address' => $e->student->address,
+            'sector' => $e->student->sector,
             'phone' => $e->student->phone,
             'guardian_name' => $e->student->guardian?->name,
             'guardian_email' => $e->student->guardian?->email,
@@ -430,9 +430,9 @@ class AcademicController extends Controller
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['NIS', 'Nama', 'Jenis kelamin', 'Tanggal lahir', 'Nama sekolah', 'Kelas sekolah', 'Alamat', 'Telepon murid', 'Nama wali', 'Hubungan wali', 'Telepon wali', 'Email wali', 'Level', 'Kelas BEC', 'Status', ...self::SKILLS, 'Catatan pengajar']);
+            fputcsv($out, ['NIS', 'Nama', 'Jenis kelamin', 'Tanggal lahir', 'Nama sekolah', 'Kelas sekolah', 'Sektor', 'Telepon murid', 'Nama wali', 'Hubungan wali', 'Telepon wali', 'Email wali', 'Level', 'Kelas BEC', 'Status', ...self::SKILLS, 'Catatan pengajar']);
             foreach ($rows as $row) {
-                fputcsv($out, [$row['nis'] ?? '', $row['name'], $row['gender'] ?? '', $row['birth_date'] ?? '', $row['school_name'] ?? '', $row['school_class'] ?? '', $row['address'] ?? '', $row['phone'] ?? '', $row['guardian_name'] ?? '', $row['guardian_relation'] ?? '', $row['guardian_phone'] ?? '', $row['guardian_email'] ?? '', $row['level'], $row['class'], $row['status'], ...array_map(fn ($skill) => $row['scores']->get($skill, ''), self::SKILLS), $row['note'] ?? '']);
+                fputcsv($out, [$row['nis'] ?? '', $row['name'], $row['gender'] ?? '', $row['birth_date'] ?? '', $row['school_name'] ?? '', $row['school_class'] ?? '', $row['sector'] ?? '', $row['phone'] ?? '', $row['guardian_name'] ?? '', $row['guardian_relation'] ?? '', $row['guardian_phone'] ?? '', $row['guardian_email'] ?? '', $row['level'], $row['class'], $row['status'], ...array_map(fn ($skill) => $row['scores']->get($skill, ''), self::SKILLS), $row['note'] ?? '']);
             }
             fclose($out);
         }, 'data-akademik-'.($r->query('term', (string) now()->year)).'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);

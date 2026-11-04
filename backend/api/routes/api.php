@@ -10,7 +10,6 @@ use App\Http\Controllers\StudentController as S;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', function (Request $r) {
@@ -19,24 +18,6 @@ Route::post('/login', function (Request $r) {
 
     return ['token' => $u->createToken('web')->plainTextToken, 'role' => $u->role, 'roles' => $u->roles(), 'name' => $u->name];
 })->middleware('throttle:10,1');
-
-Route::post('/forgot-password', function (Request $r) {
-    $r->validate(['email' => 'required|email']);
-    Password::sendResetLink($r->only('email'));
-
-    return ['ok' => true];
-})->middleware('throttle:5,1');
-
-Route::post('/reset-password', function (Request $r) {
-    $d = $r->validate(['token' => 'required', 'email' => 'required|email', 'password' => 'required|min:8|confirmed']);
-    $status = Password::reset($d + ['password_confirmation' => $r->password_confirmation], function ($u, $pw) {
-        $u->forceFill(['password' => Hash::make($pw)])->save();
-        $u->tokens()->delete();
-    });
-    abort_unless($status === Password::PASSWORD_RESET, 422, 'Tautan tidak valid atau sudah kedaluwarsa.');
-
-    return ['ok' => true];
-})->middleware('throttle:5,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/summary', [A::class, 'summary']);

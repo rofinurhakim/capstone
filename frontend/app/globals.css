@@ -38,17 +38,37 @@ h1, h2, h3 { font-family: var(--font-head), system-ui, sans-serif; letter-spacin
 .report-comment p { min-height: 64px; margin-top: .5rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .report-outcome { display: grid; justify-items: center; gap: .25rem; margin-top: auto; padding: 1rem; text-align: center; }.report-outcome-label { font-size: .75rem; font-weight: 800; text-transform: uppercase; }.report-outcome strong { font-size: 1.25rem; font-weight: 900; }.report-outcome > span:last-child { font-size: .85rem; }
 .report-footer { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1rem; padding-top: 1rem; color: #171717; font-size: .85rem; font-weight: 800; }.report-footer span { min-width: 0; overflow-wrap: anywhere; }.report-footer small { display: block; margin-top: .25rem; font-weight: 500; opacity: .7; }
-@page { size: A4; margin: 10mm; }
+@page { size: A4 portrait; margin: 5mm; }
 @media print {
 	nav, .no-print, .app-sidebar, .mobile-topbar, .mobile-sidebar-backdrop { display: none !important; }
 	html, body { background: #fff !important; }
 	body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 	main { max-width: none !important; padding: 0 !important; }
-	.report-sheet { min-height: 265mm; margin: 0 !important; border: 2mm solid #a47ac6; box-shadow: none; padding: 12mm !important; }
-	.report-sheet h1 { font-size: 24pt; }
-	.report-sheet section, .report-grade-table { break-inside: avoid; }
+	.report-sheet { box-sizing: border-box; width: 200mm; height: 287mm; min-height: 0; gap: 4mm; margin: 0 !important; border: 1.5mm solid #a47ac6; box-shadow: none; padding: 7mm !important; break-after: page; }
+	.report-sheet:last-of-type { break-after: auto; }
+	.report-sheet h1 { font-size: 20pt; }
+	.report-sheet section, .report-grade-table, .report-header, .report-footer { break-inside: avoid; }
 	.report-header { background: #cce8e7 !important; }
-	.report-logo { width: 42mm; height: 42mm; }
+	.report-header { gap: 4mm; padding: 4mm; }
+	.report-header .report-kicker { margin-top: 2mm; font-size: 8pt; }
+	.report-header h1 { margin-top: 2mm; font-size: 20pt; }
+	.report-header p:not(.report-kicker) { margin-top: 1mm; font-size: 9pt; }
+	.report-logo { width: 32mm; height: 32mm; }
+	.report-themes h2, .report-comment h2 { font-size: 11pt; }
+	.report-themes ul { gap: 1.5mm; margin-top: 2mm; font-size: 9pt; }
+	.report-themes li { gap: 2mm; }
+	.report-themes li svg { width: 3mm; height: 3mm; }
+	.report-table-wrap { overflow: visible; }
+	.report-grade-table { min-width: 0; font-size: 9pt; }
+	.report-grade-table th, .report-grade-table td { padding: 2mm; }
+	.report-grade-total { min-width: 30mm; }
+	.report-total-result strong { font-size: 22pt; }
+	.report-total-result span, .report-outcome-label { font-size: 8pt; }
+	.report-comment p { min-height: 0; margin-top: 2mm; font-size: 9pt; }
+	.report-outcome { gap: 1mm; padding: 3mm; }
+	.report-outcome strong { font-size: 12pt; }
+	.report-outcome > span:last-child { font-size: 9pt; }
+	.report-footer { gap: 4mm; margin-top: 0; padding-top: 2mm; font-size: 9pt; }
 	.report-score, .report-grade-table { background: #fff38d !important; }
 }
 @media (max-width: 640px) { .kid-scene { right: -10%; width: 58%; opacity: .75; }.kid-hero { min-height: 390px; }.kid-hero h1, .kid-hero p, .kid-hero .inline-flex { position: relative; z-index: 3; max-width: 75%; }.report-sheet { min-height: 0; border-width: 5px; padding: 16px; }.report-header { gap: .75rem; padding: 1rem; }.report-logo { width: 104px; height: 104px; }.report-score { width: 100%; }.report-footer { font-size: .75rem; } }

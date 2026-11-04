@@ -2,8 +2,8 @@
 
 Backend (.env produksi)
 - APP_ENV=production, APP_DEBUG=false, APP_URL=https://api.domainmu.id
-- Tambahkan di config/app.php: 'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'); isi FRONTEND_URL di .env
-- Email reset sandi: atur MAIL_* (SMTP). Saat pengembangan MAIL_MAILER=log; tautan muncul di storage/logs/laravel.log
+- Ganti kata sandi dilakukan setelah pengguna masuk dari menu Account dengan memasukkan kata sandi saat ini; semua sesi API dicabut dan pengguna harus login kembali setelah perubahan.
+- `FRONTEND_URL` dipakai untuk membatasi origin CORS ke frontend yang digunakan.
 - Batasi CORS: php artisan config:publish cors, lalu isi allowed_origins dengan alamat frontend saja
 - Kedaluwarsa token: di config/sanctum.php isi 'expiration' => 60 * 24 * 7
 - Hapus akun contoh dari seeder dan jangan jalankan --seed di produksi

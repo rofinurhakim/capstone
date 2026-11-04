@@ -8,6 +8,7 @@ use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ManageController extends Controller
 {
@@ -37,7 +38,7 @@ class ManageController extends Controller
             'birth_date' => 'nullable|date',
             'school_name' => 'nullable|string|max:150',
             'school_class' => 'nullable|string|max:50',
-            'address' => 'nullable|string|max:1000',
+            'sector' => ['nullable', Rule::in(Student::SECTORS)],
             'phone' => 'nullable|string|max:30',
             'guardian_phone' => 'nullable|string|max:30',
             'guardian_relation' => 'nullable|string|max:50',
@@ -86,6 +87,7 @@ class ManageController extends Controller
         $u = $r->user();
         abort_unless(Hash::check($d['current_password'], $u->password), 422, 'Kata sandi saat ini salah.');
         $u->forceFill(['password' => Hash::make($d['password'])])->save();
+        $u->tokens()->delete();
 
         return ['ok' => true];
     }

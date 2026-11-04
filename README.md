@@ -5,18 +5,18 @@ Aplikasi portal akademik Bethesda English Course (BEC) berbasis web. Sistem terd
 ## Fitur
 
 - **Akses berbasis peran:** Admin, Admin Akademik, Guru, dan Orang Tua/Wali mendapatkan akses sesuai perannya. Akun guru dapat diberi satu peran tambahan: Admin atau Admin Akademik.
-- **Pengelolaan murid:** Admin dan Admin Akademik mendaftarkan murid. Pendaftaran baru dimulai dengan level Matthew A dan status Pending; data sekolah mencakup nama sekolah dan kelas sekolah.
+- **Pengelolaan murid:** Admin dan Admin Akademik mendaftarkan murid. Pendaftaran baru dimulai dengan level Matthew A dan status Pending; data sekolah mencakup nama sekolah, kelas sekolah, dan Sector yang dipilih dari daftar sektor.
 - **Kelas dan guru:** Maksimal tiga guru dapat mengajar satu kelas dan seorang guru hanya dapat ditugaskan ke satu kelas per tahun ajaran. Tema pembelajaran berlaku untuk satu tahun ajaran.
 - **Presensi:** Guru mencatat presensi berdasarkan tanggal dan tahun ajaran. Sistem menyediakan rekap presensi dan ekspor CSV.
 - **Nilai dan komentar:** Guru dapat membuat jumlah kuis yang fleksibel per kelas dan tahun ajaran; e-report menampilkan rata-rata kuis pada baris Assignment beserta bobotnya. Nilai partisipasi dihitung dari jumlah hadir dibagi seluruh pertemuan, sehingga sakit, izin, dan absen tidak menambah nilai hadir.
 - **Periode akademik:** Admin dan Admin Akademik dapat menambahkan periode berikutnya dengan memilih tanggal mulai dan selesai. Dropdown menampilkan rentang lengkap, misalnya 1 Agustus 2026–31 Mei 2027.
 - **Bobot penilaian:** Admin dan Admin Akademik dapat mengatur bobot penilaian untuk setiap tahun ajaran. Total bobot harus 100%.
 - **Placement test:** Tidak ada halaman atau input nilai placement test. Admin atau Admin Akademik menjadwalkannya sebagai acara kalender; Akademi memilih level dan mengonfirmasi enrollment setelah tes selesai.
-- **Rapor:** Guru menyetujui rapor dengan nilai lengkap; Admin atau Admin Akademik mengatur tanggal publikasi dan menyetujui penerbitan. Tenggat nilai mengikuti tanggal publikasi. Guru dapat meminta revisi rapor terbit, yang kembali menjadi draft untuk disetujui guru dan Akademi sebelum diterbitkan ulang.
+- **Rapor:** Guru menyetujui rapor dengan nilai lengkap; Admin atau Admin Akademik mengatur tanggal publikasi dan menyetujui penerbitan. Tenggat nilai mengikuti tanggal publikasi. Guru dapat meminta revisi rapor terbit, yang kembali menjadi draft untuk disetujui guru dan Akademi sebelum diterbitkan ulang. E-report dapat dicetak sebagai PDF satu halaman A4.
 - **Enrollment dan kenaikan level:** Enrollment baru berstatus Pending sampai dikonfirmasi atau ditolak Akademi. Enrollment tahun ajaran berikutnya ditentukan berdasarkan nilai berbobot dan presensi. Nilai akhir minimal 65 menaikkan level; nilai di bawah 65 mengulang level. Murid ECSC yang memenuhi syarat dinyatakan lulus. Nilai yang belum lengkap menahan murid dari proses otomatis.
 - **Kalender akademik:** Pengguna dapat melihat acara akademik. Admin dan Admin Akademik dapat menambah, mengubah, dan menghapus acara.
 - **Akses orang tua:** Orang tua dapat memperbarui data anak, memilih untuk tidak melanjutkan enrollment, melihat dan mengunduh e-report card sebagai PDF, melihat kalender, serta menghubungi guru yang ditugaskan. Orang tua tidak dapat menambahkan data murid atau mengunduh CSV rapor.
-- **Keamanan akun:** Pengguna dapat mengubah kata sandi atau meminta tautan pengaturan ulang kata sandi dari halaman login.
+- **Keamanan akun:** Pengguna yang sudah masuk dapat mengganti kata sandi dari halaman Account dengan memasukkan kata sandi saat ini. Semua sesi dicabut dan pengguna harus login kembali. Perubahan kata sandi tidak memakai email; pengguna yang lupa kata sandi perlu menghubungi administrator.
 - **Notifikasi dan ekspor:** Aksi yang berhasil dan kesalahan ditampilkan melalui toast berbahasa Inggris. Staf dapat mengekspor data akademik dan presensi sebagai CSV.
 
 ## Persyaratan
@@ -58,6 +58,8 @@ Untuk **database yang sudah berisi data**, jangan jalankan seeder lagi. Cukup te
 ```sh
 php artisan migrate
 ```
+
+Kolom `sector` ditambahkan melalui migrasi tanpa menghapus kolom `address` historis. Set `FRONTEND_URL` ke origin frontend untuk konfigurasi CORS. Perubahan kata sandi dilakukan dari halaman Account setelah login dan tidak memerlukan konfigurasi email.
 
 Jalankan API pada port `8001`:
 

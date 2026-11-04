@@ -18,7 +18,7 @@ class StudentController extends Controller
     {
         abort_unless($r->user()->hasRole('parent'), 403);
 
-        return Student::where('guardian_id', $r->user()->id)->orderBy('name')->get(['id', 'name', 'gender', 'birth_date', 'school_name', 'school_class', 'address', 'phone', 'guardian_phone', 'guardian_relation']);
+        return Student::where('guardian_id', $r->user()->id)->orderBy('name')->get(['id', 'name', 'gender', 'birth_date', 'school_name', 'school_class', 'sector', 'phone', 'guardian_phone', 'guardian_relation']);
     }
 
     public function updateOwnStudent(Request $r, Student $student)
@@ -30,14 +30,14 @@ class StudentController extends Controller
             'birth_date' => 'nullable|date',
             'school_name' => 'nullable|string|max:150',
             'school_class' => 'nullable|string|max:50',
-            'address' => 'nullable|string|max:1000',
+            'sector' => ['nullable', Rule::in(Student::SECTORS)],
             'phone' => 'nullable|string|max:30',
             'guardian_phone' => 'nullable|string|max:30',
             'guardian_relation' => 'nullable|string|max:50',
         ]);
         $student->update($data);
 
-        return $student->only(['id', 'name', 'gender', 'birth_date', 'school_name', 'school_class', 'address', 'phone', 'guardian_phone', 'guardian_relation']);
+        return $student->only(['id', 'name', 'gender', 'birth_date', 'school_name', 'school_class', 'sector', 'phone', 'guardian_phone', 'guardian_relation']);
     }
 
     public function terms()
@@ -232,7 +232,7 @@ class StudentController extends Controller
             'birth_date' => 'nullable|date',
             'school_name' => 'nullable|string|max:150',
             'school_class' => 'nullable|string|max:50',
-            'address' => 'nullable|string|max:1000',
+            'sector' => ['nullable', Rule::in(Student::SECTORS)],
             'phone' => 'nullable|string|max:30',
             'guardian_phone' => 'nullable|string|max:30',
             'guardian_relation' => 'nullable|string|max:50',
@@ -251,7 +251,7 @@ class StudentController extends Controller
             }
             $s = Student::create([
                 'nis' => 'S'.now()->format('ymd').strtoupper(Str::random(4)),
-                ...collect($d)->only(['name', 'gender', 'birth_date', 'school_name', 'school_class', 'address', 'phone', 'guardian_phone', 'guardian_relation'])->all(),
+                ...collect($d)->only(['name', 'gender', 'birth_date', 'school_name', 'school_class', 'sector', 'phone', 'guardian_phone', 'guardian_relation'])->all(),
                 'level' => 'MATTHEW A',
                 'guardian_id' => $g->id,
             ]);

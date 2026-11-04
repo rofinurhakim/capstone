@@ -91,7 +91,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               <p className="mt-0.5 truncate text-xs text-slate-500">{roleLabel}</p>
             </div>
           </div>
-          <button type="button" onClick={logout} className="mt-2 flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-slate-500 transition-colors hover:bg-[#fff0ed] hover:text-[var(--coral)]"><LogOut size={17} />Sign out</button>
+          <button type="button" onClick={() => logout()} className="mt-2 flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-slate-500 transition-colors hover:bg-[#fff0ed] hover:text-[var(--coral)]"><LogOut size={17} />Sign out</button>
         </div>
       </aside>
 

@@ -41,7 +41,9 @@ class AcademicManagementWorkflowTest extends TestCase
             'guardian_email' => 'workflow-guardian@example.test',
             'school_name' => 'Sidoarjo School',
             'school_class' => '1SD',
-        ])->assertSuccessful()->assertJsonPath('student.name', 'Workflow Student');
+            'sector' => 'Eden',
+        ])->assertSuccessful()->assertJsonPath('student.name', 'Workflow Student')
+            ->assertJsonMissingPath('student.address');
 
         $this->getJson('/api/roster?term=2026')
             ->assertOk()
@@ -56,6 +58,7 @@ class AcademicManagementWorkflowTest extends TestCase
             'level' => 'MATTHEW A',
             'school_name' => 'Sidoarjo School',
             'school_class' => '1SD',
+            'sector' => 'Eden',
         ]);
         $this->assertDatabaseHas('enrollments', [
             'term' => '2026',
@@ -82,6 +85,21 @@ class AcademicManagementWorkflowTest extends TestCase
 
         $this->assertDatabaseMissing('classrooms', ['name' => 'MARK']);
         $this->assertDatabaseMissing('users', ['email' => 'forbidden@example.test']);
+    }
+
+    public function test_student_sector_must_be_selected_from_the_allowed_options(): void
+    {
+        $academicAdmin = User::factory()->create(['role' => 'academic_admin']);
+
+        $this->actingAs($academicAdmin)->postJson('/api/students', [
+            'name' => 'Sector Validation Student',
+            'term' => '2026',
+            'guardian_name' => 'Sector Guardian',
+            'guardian_email' => 'sector-guardian@example.test',
+            'sector' => 'Not a sector',
+        ])->assertUnprocessable()->assertJsonValidationErrors('sector');
+
+        $this->assertDatabaseMissing('students', ['name' => 'Sector Validation Student']);
     }
 
     public function test_teacher_can_be_given_either_academic_admin_or_admin_as_an_additional_role(): void

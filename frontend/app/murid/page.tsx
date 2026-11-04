@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { AcademicYear, academicYearLabel, api, BEC_LEVELS, CURRENT_TERM, Row } from "@/lib/api";
+import { AcademicYear, academicYearLabel, api, BEC_LEVELS, CURRENT_TERM, Row, STUDENT_SECTORS } from "@/lib/api";
 import { ConfirmModal } from "@/components/AppModal";
 
 export default function DataMurid() {
@@ -24,7 +24,7 @@ export default function DataMurid() {
 
   const edit = (id: number, k: keyof Row, v: string | number) => setRows((r) => r.map((x) => (x.id === id ? { ...x, [k]: v } : x)));
   async function save(r: Row) {
-    await api<{ id?: number }>(`/students/${r.student_id}`, {}, { method: "PATCH", body: JSON.stringify({ name: r.name, level: r.level, school_name: r.school_name, school_class: r.school_class, term }) }, "Student details saved.");
+    await api<{ id?: number }>(`/students/${r.student_id}`, {}, { method: "PATCH", body: JSON.stringify({ name: r.name, level: r.level, school_name: r.school_name, school_class: r.school_class, sector: r.sector, term }) }, "Student details saved.");
   }
   async function reset(r: Row) {
     const res = await api<{ password?: string }>(`/students/${r.student_id}/reset-guardian`, {}, { method: "POST" }, "Guardian password reset successfully.");
@@ -49,6 +49,7 @@ export default function DataMurid() {
               <select aria-label="Level" required value={BEC_LEVELS.includes(r.level) ? r.level : ""} onChange={(e) => edit(r.id, "level", e.target.value)} className={c}><option value="" disabled>Select level for academic review</option>{BEC_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}</select>
               <input aria-label="School name" value={r.school_name ?? ""} onChange={(e) => edit(r.id, "school_name", e.target.value)} placeholder="School name" className={`${c} w-40`} />
               <input aria-label="School class" value={r.school_class ?? ""} onChange={(e) => edit(r.id, "school_class", e.target.value)} placeholder="1SD, 1SMP" className={`${c} w-28`} />
+              <select aria-label="Sector" value={r.sector ?? ""} onChange={(e) => edit(r.id, "sector", e.target.value)} className={c}><option value="">Select sector</option>{STUDENT_SECTORS.map((sector) => <option key={sector} value={sector}>{sector}</option>)}</select>
               <Link href={`/murid/${r.id}?term=${encodeURIComponent(term)}`} className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-sm font-semibold">Details</Link>
               <button onClick={() => save(r)} disabled={!BEC_LEVELS.includes(r.level)} className="rounded-lg bg-[var(--ink)] px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45">Save</button>
               <button onClick={() => setDialog({ type: "reset", row: r })} className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-sm font-semibold hover:bg-[var(--line)]">Reset guardian password</button>

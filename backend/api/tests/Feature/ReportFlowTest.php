@@ -405,7 +405,7 @@ class ReportFlowTest extends TestCase
         $this->actingAs($parent)
             ->patchJson("/api/my-students/{$student->id}", [
                 'name' => 'Nama Diperbarui',
-                'address' => 'Jl. Pendidikan 1',
+                'sector' => 'Eden',
                 'level' => 'ECSC',
             ])
             ->assertOk()
@@ -415,7 +415,7 @@ class ReportFlowTest extends TestCase
         $this->assertDatabaseHas('students', [
             'id' => $student->id,
             'name' => 'Nama Diperbarui',
-            'address' => 'Jl. Pendidikan 1',
+            'sector' => 'Eden',
             'level' => 'MATTHEW A',
         ]);
     }

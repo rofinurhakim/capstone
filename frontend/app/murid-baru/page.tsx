@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import { AcademicYear, academicYearLabel, api, CURRENT_TERM } from "@/lib/api";
+import { AcademicYear, academicYearLabel, api, CURRENT_TERM, STUDENT_SECTORS } from "@/lib/api";
 import { FormModal } from "@/components/AppModal";
 
 type Res = { student?: { name: string; nis: string }; guardianPassword?: string | null };
-const empty = { name: "", gender: "", birth_date: "", school_name: "", school_class: "", address: "", phone: "", guardian_phone: "", guardian_relation: "", guardian_name: "", guardian_email: "", term: CURRENT_TERM };
+const empty = { name: "", gender: "", birth_date: "", school_name: "", school_class: "", sector: "", phone: "", guardian_phone: "", guardian_relation: "", guardian_name: "", guardian_email: "", term: CURRENT_TERM };
 
 export default function MuridBaru() {
   const [f, setF] = useState(empty);
@@ -48,7 +48,7 @@ export default function MuridBaru() {
         <label className="text-sm font-semibold">School name<input value={f.school_name} onChange={set("school_name")} className={c} /></label>
         <label className="text-sm font-semibold">School class<input value={f.school_class} onChange={set("school_class")} className={c} placeholder="1SD, 1SMP" /></label>
         <label className="text-sm font-semibold">Student phone<input value={f.phone} onChange={set("phone")} className={c} inputMode="tel" /></label>
-        <label className="text-sm font-semibold sm:col-span-2">Address<textarea value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} className={c} rows={2} /></label>
+        <label className="text-sm font-semibold">Sector<select value={f.sector} onChange={set("sector")} className={c}><option value="">Select sector</option>{STUDENT_SECTORS.map((sector) => <option key={sector} value={sector}>{sector}</option>)}</select></label>
         <label className="text-sm font-semibold">Academic period<select required value={f.term} onChange={set("term")} className={c}>{terms.map((year) => <option key={year} value={year}>{academicYearLabel(year, academicYears)}</option>)}</select></label>
         <div className="sm:col-span-2 rounded-xl bg-[var(--paper)] p-4"><h2 className="font-bold">Parent / guardian account</h2><p className="mt-1 text-sm opacity-70">This email will be used to sign in and view the student&apos;s report cards.</p></div>
         <label className="text-sm font-semibold">Parent/guardian name<input required value={f.guardian_name} onChange={set("guardian_name")} className={c} /></label>

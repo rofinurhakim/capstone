@@ -1,7 +1,8 @@
-export type Row = { id: number; name: string; nis?: string; level: string; class: string; status: string; status_note?: string; scores: Record<string, number | null>; quiz_count?: number; quiz_scores?: { quiz_id: number; quiz_name?: string | null; score: number }[]; attendance?: { present: number; excused: number; sick: number; absent: number }; note?: string; student_id?: number; classroom_id?: number; gender?: string; birth_date?: string; school_name?: string; school_class?: string; address?: string; phone?: string; guardian_name?: string; guardian_email?: string; guardian_phone?: string; guardian_relation?: string; teacher_name?: string; coordinator_name?: string; teacher_verified_at?: string; academic_verified_at?: string; published_at?: string; requires_placement_test?: boolean; placement_test_completed_at?: string | null; revision_requested_at?: string | null; report_status?: string };
+export type Row = { id: number; name: string; nis?: string; level: string; class: string; status: string; status_note?: string; scores: Record<string, number | null>; quiz_count?: number; quiz_scores?: { quiz_id: number; quiz_name?: string | null; score: number }[]; attendance?: { present: number; excused: number; sick: number; absent: number }; note?: string; student_id?: number; classroom_id?: number; gender?: string; birth_date?: string; school_name?: string; school_class?: string; sector?: string; phone?: string; guardian_name?: string; guardian_email?: string; guardian_phone?: string; guardian_relation?: string; teacher_name?: string; coordinator_name?: string; teacher_verified_at?: string; academic_verified_at?: string; published_at?: string; requires_placement_test?: boolean; placement_test_completed_at?: string | null; revision_requested_at?: string | null; report_status?: string };
 export const SKILLS = ["Participation", "Assignment", "Mid Term Test", "Final Test"];
 export const WEIGHTS: Record<string, number> = { Participation: 20, Assignment: 30, "Mid Term Test": 20, "Final Test": 30 };
 export const BEC_LEVELS = ["MATTHEW A", "MATTHEW B", "MARK", "LUKE", "JOHN", "TIMOTHY", "GENESIS", "ECSC"];
+export const STUDENT_SECTORS = ["Eden", "Efrata", "Galilea", "Gloria", "Haleluya", "Hosiana", "Imanuel", "Makedonia", "Maranatha", "Nafiri", "Nazareth", "Sion", "Syalom", "Yerusalem"];
 
 export const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
 export const CURRENT_TERM = String(new Date().getFullYear());
@@ -28,7 +29,7 @@ export function session(): Session | null {
 export function hasRole(role: Role, current = session()): boolean {
   return Boolean(current && (current.roles?.includes(role) || current.role === role));
 }
-export function logout() { localStorage.removeItem("session"); window.location.href = "/login"; }
+export function logout(redirectTo = "/login") { localStorage.removeItem("session"); window.location.href = redirectTo; }
 
 const say = (m: string) => window.dispatchEvent(new CustomEvent("app-error", { detail: m }));
 export function notify(message: string, type: "success" | "error" = "success") {
