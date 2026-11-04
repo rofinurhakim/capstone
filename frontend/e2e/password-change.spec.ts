@@ -19,11 +19,11 @@ test("changing password signs the user out and requires a fresh login", async ({
   });
 
   await page.goto("/akun");
-  await page.getByRole("button", { name: "Change password" }).click();
+  await expect(page.getByRole("heading", { name: "Account security" })).toBeVisible();
   await page.getByLabel("Current password").fill("current-password");
   await page.getByLabel("New password (at least 8 characters)").fill("new-secure-password");
   await page.getByLabel("Confirm new password").fill("new-secure-password");
-  await page.getByRole("button", { name: "Save password" }).click();
+  await page.getByRole("button", { name: "Change password" }).click();
 
   await expect(page).toHaveURL(/\/login\?password-changed=1$/);
   await expect(page.getByRole("status")).toContainText("Please sign in again with your new password.");
