@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Star } from "lucide-react";
+import { BookOpen, CalendarClock, CheckCircle2, ChevronRight, Download, FileText, RefreshCw, ShieldCheck, Star, UsersRound } from "lucide-react";
 import { AcademicYear, academicYearLabel, api, avg, BASE, CURRENT_TERM, hasRole, notify, session, Row, SKILLS, WEIGHTS } from "@/lib/api";
 import { BecLogo } from "@/components/BecLogo";
 
@@ -104,22 +104,65 @@ export default function Rapor() {
     }
   }
 
+  const reportPublished = Boolean(r.published_at);
+  const publicationStatus = reportPublished
+    ? "Published"
+    : r.academic_verified_at
+      ? "Approved · awaiting publication"
+      : r.teacher_verified_at
+        ? "Awaiting Academic approval"
+        : "Draft · awaiting teacher approval";
+  const reportActionButton = "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-45";
+
   return (
     <>
-      <div className="no-print mt-8 flex flex-wrap items-center gap-3">
-        <select value={term} onChange={(e) => setTerm(e.target.value)} className="rounded-lg border border-[var(--line)] bg-white px-3 py-2" aria-label="Select academic year">{terms.map((item) => <option key={item} value={item}>{academicYearLabel(item, academicYears)}</option>)}</select>
-        <select value={id} onChange={(e) => setId(Number(e.target.value))} className="rounded-lg border border-[var(--line)] bg-white px-3 py-2" aria-label="Select student">
-          {rows.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-        </select>
-        <button onClick={() => { notify("Opening the PDF save dialog."); window.print(); }} className="rounded-xl bg-[var(--ink)] px-4 py-2 font-semibold text-white">{hasRole("parent") ? "Download e-report PDF" : "Print report"}</button>
-        {!hasRole("parent") && <button onClick={() => { notify("Preparing the report CSV export."); exportCsv(); }} className="rounded-xl border border-[var(--line)] bg-white px-4 py-2 font-semibold">Export CSV</button>}
-        {canVerifyAsTeacher && <button onClick={() => void verify("teacher")} disabled={Boolean(r.teacher_verified_at || r.published_at || !scoresComplete)} className="rounded-xl border border-[var(--mint)] px-4 py-2 font-semibold text-[var(--mint)] disabled:cursor-not-allowed disabled:opacity-45">{r.teacher_verified_at ? "Verified by teacher" : scoresComplete ? "Approve as teacher" : "Complete grades to verify"}</button>}
-        {canVerifyAsAcademic && <button onClick={() => void verify("academic")} disabled={Boolean(!r.teacher_verified_at || r.academic_verified_at || r.published_at)} className="rounded-xl border border-[var(--mint)] px-4 py-2 font-semibold text-[var(--mint)] disabled:cursor-not-allowed disabled:opacity-45">{r.published_at ? "Published" : r.academic_verified_at ? "Approved; waiting for publication" : r.teacher_verified_at ? "Approve report" : "Awaiting teacher approval"}</button>}
-        {canRequestRevision && <button onClick={reopen} className="rounded-xl border border-amber-500 px-4 py-2 font-semibold text-amber-700">Request report revision</button>}
-      </div>
-      {canSchedule && <section className="no-print mt-5 rounded-2xl border border-[var(--line)] bg-white p-5"><h2 className="text-xl font-extrabold">Publication schedule for {r.name}</h2><p className="mt-1 text-sm opacity-70">Each student has an independent publication date. After the teacher and Academic approve this report, it will be published automatically at the scheduled time (checked every minute).</p><form onSubmit={saveSchedule} className="mt-3 flex flex-wrap items-end gap-3"><label className="text-sm font-semibold">Student<input value={r.name} readOnly className="mt-1 block rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3 py-2" /></label><label className="text-sm font-semibold">Publication date and time<input required type="datetime-local" value={publishAt} onChange={(e) => setPublishAtDrafts((drafts) => ({ ...drafts, [r.id]: e.target.value }))} className="mt-1 block rounded-lg border border-[var(--line)] bg-white px-3 py-2" /></label><button disabled={Boolean(r.published_at)} className="rounded-xl bg-[var(--ink)] px-4 py-2 font-semibold text-white disabled:opacity-50">{r.report_publish_at ? "Update this student's date" : "Set this student's date"}</button></form><p className="mt-2 text-sm opacity-70">{r.published_at ? "This report has been published." : r.report_publish_at ? `Saved: ${new Date(r.report_publish_at).toLocaleString("en-US")}` : "No publication date or time has been set for this student."}</p></section>}
+      <section className="no-print relative mt-3 overflow-hidden rounded-[1.75rem] border border-[#dbe5ff] bg-gradient-to-br from-[#eef3ff] via-white to-[#e6efff] p-5 shadow-[0_16px_38px_rgba(50,87,166,.1)] sm:p-7">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-20 size-64 rounded-full bg-[#dbe7ff]/70 blur-2xl" />
+        <div className="relative">
+          <div className="flex items-start gap-4">
+            <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#4d83e5] to-[#3162c3] text-white shadow-md shadow-blue-900/15"><FileText size={27} /></span>
+            <div className="min-w-0">
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-[#dce6ff] bg-white/80 px-3 py-1 text-xs font-bold text-[#416199]"><BookOpen size={13} /><span>Academic</span><ChevronRight size={13} /><span>Report</span></div>
+              <h1 className="text-2xl font-extrabold tracking-tight text-[#172d59] sm:text-3xl">{canSchedule ? `Publication schedule for ${r.name}` : "Student e-report card"}</h1>
+              <p className="mt-1 max-w-3xl text-sm text-[#52678f]">{canSchedule ? "Each student has an independent publication date. After the teacher and Academic approve this report, it publishes automatically at the scheduled time." : "Review the student’s learning progress, assessment results, and final outcome for the academic year."}</p>
+            </div>
+          </div>
 
-      <article key={r.id} className="report-sheet mt-6">
+          <div className="mt-5 grid gap-3 rounded-2xl border border-[#dce6ff] bg-white/90 p-3 shadow-sm sm:grid-cols-2 xl:grid-cols-[minmax(160px,1fr)_minmax(160px,1fr)_auto_auto] xl:items-end">
+            <label className="text-[11px] font-bold uppercase tracking-wide text-[#7182a3]">Academic period
+              <select aria-label="Select academic year" value={term} onChange={(e) => setTerm(e.target.value)} className="mt-1 block w-full rounded-xl border border-[#dce5f7] bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-[#263d68] outline-none focus:border-[#7599e6] focus:ring-2 focus:ring-[#e5edff]">{terms.map((item) => <option key={item} value={item}>{academicYearLabel(item, academicYears)}</option>)}</select>
+            </label>
+            <label className="text-[11px] font-bold uppercase tracking-wide text-[#7182a3]">Student
+              <select aria-label="Select student" value={id} onChange={(e) => setId(Number(e.target.value))} className="mt-1 block w-full rounded-xl border border-[#dce5f7] bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-[#263d68] outline-none focus:border-[#7599e6] focus:ring-2 focus:ring-[#e5edff]">{rows.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+            </label>
+            {canSchedule && <form onSubmit={saveSchedule} className="contents">
+              <label className="text-[11px] font-bold uppercase tracking-wide text-[#7182a3]">Publication date and time
+                <input aria-label="Publication date and time" required type="datetime-local" value={publishAt} onChange={(e) => setPublishAtDrafts((drafts) => ({ ...drafts, [r.id]: e.target.value }))} className="mt-1 block w-full rounded-xl border border-[#dce5f7] bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-[#263d68] outline-none focus:border-[#7599e6] focus:ring-2 focus:ring-[#e5edff]" />
+              </label>
+              <button disabled={reportPublished} className={`${reportActionButton} bg-gradient-to-r from-[#315ca6] to-[#24457f] text-white shadow-sm`}><RefreshCw size={15} />{r.report_publish_at ? "Update this student's date" : "Set publication date"}</button>
+            </form>}
+            {!canSchedule && <div className="flex flex-wrap gap-2 sm:col-span-2 xl:col-span-2">
+              <button onClick={() => { notify("Opening the PDF save dialog."); window.print(); }} className={`${reportActionButton} bg-gradient-to-r from-[#315ca6] to-[#24457f] text-white shadow-sm`}><Download size={16} />{hasRole("parent") ? "Download e-report PDF" : "Print report"}</button>
+              {!hasRole("parent") && <button onClick={() => { notify("Preparing the report CSV export."); exportCsv(); }} className={`${reportActionButton} border border-[#dce5f7] bg-white text-[#315ca6] hover:bg-[#f4f7ff]`}><Download size={16} />Export CSV</button>}
+            </div>}
+            {canSchedule && <div className={`inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-extrabold ${reportPublished ? "bg-[#e7f7ed] text-[#24784a]" : "bg-[#fff7db] text-[#93700a]"}`}><CheckCircle2 size={15} />{reportPublished ? "Published" : "Not published"}</div>}
+          </div>
+
+          {canSchedule && <p className="mt-2 flex items-center gap-1.5 px-1 text-xs font-medium text-[#52678f]"><CalendarClock size={14} />{reportPublished ? "This report has been published." : r.report_publish_at ? `Scheduled for ${new Date(r.report_publish_at).toLocaleString("en-US")}.` : "No publication date or time has been set for this student."} Publication status is checked automatically every minute.</p>}
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${reportPublished ? "bg-[#e7f7ed] text-[#24784a]" : "bg-white/90 text-[#52678f]"}`}><ShieldCheck size={14} />{publicationStatus}</span>
+            {canVerifyAsTeacher && <button onClick={() => void verify("teacher")} disabled={Boolean(r.teacher_verified_at || reportPublished || !scoresComplete)} className={`${reportActionButton} border border-[#b8dfd0] bg-white text-[#24815f] hover:bg-[#f0fbf6]`}>{r.teacher_verified_at ? <><CheckCircle2 size={15} />Verified by teacher</> : <><ShieldCheck size={15} />{scoresComplete ? "Approve as teacher" : "Complete grades to verify"}</>}</button>}
+            {canVerifyAsAcademic && <button onClick={() => void verify("academic")} disabled={Boolean(!r.teacher_verified_at || r.academic_verified_at || reportPublished)} className={`${reportActionButton} border border-[#b8dfd0] bg-white text-[#24815f] hover:bg-[#f0fbf6]`}>{reportPublished ? <><CheckCircle2 size={15} />Published</> : r.academic_verified_at ? <><CheckCircle2 size={15} />Approved; waiting for publication</> : <><ShieldCheck size={15} />{r.teacher_verified_at ? "Approve report" : "Awaiting teacher approval"}</>}</button>}
+            {canRequestRevision && <button onClick={reopen} className={`${reportActionButton} border border-[#f1d89b] bg-white text-[#9a6c0b] hover:bg-[#fffaf0]`}><RefreshCw size={15} />Request report revision</button>}
+            <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-[#7283a2]"><UsersRound size={14} />{r.class}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="report-preview-shell mt-5 rounded-[1.5rem] border border-[#dce5f7] bg-white/80 p-3 shadow-[0_12px_30px_rgba(32,58,112,.08)] sm:p-5">
+        <div className="no-print mb-3 flex items-center gap-2 px-1 text-sm font-bold text-[#52678f]"><FileText size={16} className="text-[#3975db]" />Report preview <span className="ml-auto hidden text-xs font-medium sm:inline">Print or download as PDF using the button above</span></div>
+        <article key={r.id} className="report-sheet mt-0">
         <header className="report-header">
           <div className="report-header-content"><div className="report-brand">Bethesda English Course · Sidoarjo</div><p className="report-kicker">E-Report · {academicYearLabel(term, academicYears)}</p><h1>{r.name}</h1><p><b>Level:</b> {r.level}</p><p><b>Academic period:</b> {academicYearLabel(term, academicYears)}</p></div>
           <BecLogo size={180} className="report-logo" />
@@ -129,7 +172,8 @@ export default function Rapor() {
         <section className="report-comment"><h2>Teacher&apos;s comment</h2><p>{r.note || "No teacher comment has been added."}</p></section>
         <section className="report-outcome"><span className="report-outcome-label">Final outcome</span><strong>{result}</strong><span>{a >= 65 ? "Congratulations on your achievement!" : "Keep practicing for the next academic year."}</span></section>
         <footer className="report-footer"><span>{r.teacher_name ?? "Teacher"}<small>Teacher(s)</small></span><span>{r.coordinator_name ?? "Academic Admin"}<small>Coordinator of BEC</small></span></footer>
-      </article>
+        </article>
+      </section>
     </>
   );
 }

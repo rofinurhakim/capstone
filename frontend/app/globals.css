@@ -44,6 +44,7 @@ h1, h2, h3 { font-family: var(--font-head), system-ui, sans-serif; letter-spacin
 	html, body { background: #fff !important; }
 	body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 	main { max-width: none !important; padding: 0 !important; }
+	.report-preview-shell { margin: 0 !important; border: 0 !important; background: transparent !important; padding: 0 !important; box-shadow: none !important; }
 	.report-sheet { box-sizing: border-box; width: 200mm; height: 287mm; min-height: 0; gap: 4mm; margin: 0 !important; border: 1.5mm solid #a47ac6; box-shadow: none; padding: 7mm !important; break-after: page; }
 	.report-sheet:last-of-type { break-after: auto; }
 	.report-sheet h1 { font-size: 20pt; }
