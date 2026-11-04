@@ -40,6 +40,12 @@ class ReportFlowTest extends TestCase
         $teacher = User::factory()->create(['role' => 'teacher']);
         $enrollment = $this->createEnrollment($teacher);
         $academicAdmin = User::factory()->create(['role' => 'academic_admin']);
+        ReportPublicationSchedule::create([
+            'term' => $enrollment->term,
+            'publish_at' => now(),
+            'status' => 'scheduled',
+            'created_by' => $academicAdmin->id,
+        ]);
 
         $this->actingAs($teacher)
             ->patchJson("/api/reports/{$enrollment->id}/verify")
@@ -53,6 +59,23 @@ class ReportFlowTest extends TestCase
         $this->assertNotNull($enrollment->teacher_verified_at);
         $this->assertNotNull($enrollment->academic_verified_at);
         $this->assertNotNull($enrollment->published_at);
+    }
+
+    public function test_academic_admin_cannot_publish_until_a_schedule_is_set(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+        $enrollment = $this->createEnrollment($teacher);
+        $this->actingAs($teacher)
+            ->patchJson("/api/reports/{$enrollment->id}/verify")
+            ->assertOk();
+        $academicAdmin = User::factory()->create(['role' => 'academic_admin']);
+
+        $this->actingAs($academicAdmin)
+            ->patchJson("/api/reports/{$enrollment->id}/verify")
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Jadwal publikasi belum ditentukan.');
+
+        $this->assertNull($enrollment->fresh()->published_at);
     }
 
     public function test_publication_schedule_holds_reports_that_are_not_verified_yet(): void

@@ -49,7 +49,8 @@ class ReportController extends Controller
             abort_unless($isAcademic, 403);
             abort_if(! $enrollment->teacher_verified_at, 409, 'Teacher harus memverifikasi e-report sebelum dipublikasikan.');
             $schedule = ReportPublicationSchedule::where('term', $enrollment->term)->first();
-            abort_if($schedule?->publish_at->isFuture(), 409, 'Publikasi belum mencapai tanggal yang dijadwalkan.');
+            abort_if(! $schedule, 409, 'Jadwal publikasi belum ditentukan.');
+            abort_if($schedule->publish_at->isFuture(), 409, 'Publikasi belum mencapai tanggal yang dijadwalkan.');
             $enrollment->update(['academic_verified_at' => now(), 'published_at' => now(), 'revision_requested_at' => null]);
         }
         abort_unless(in_array($stage, ['teacher', 'academic'], true), 422);

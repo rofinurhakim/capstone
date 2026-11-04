@@ -8,6 +8,10 @@ type PublicationSchedule = { id: number; term: string; publish_at: string; statu
 type Theme = { id: number; theme: string; position: number };
 const LEVELS = ["MATTHEW A", "MATTHEW B", "MARK", "LUKE", "JOHN", "TIMOTHY", "GENESIS", "ECSC"];
 const formatScore = (score: number) => score.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function toLocalDateTimeInput(value: string): string {
+  const date = new Date(value);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
 function promotionResult(level: string, score: number): string {
   if (score < 65) return `Remain at ${level} next academic year`;
   const currentLevel = LEVELS.findIndex((item) => item.toLowerCase() === level.toLowerCase());
@@ -26,7 +30,7 @@ export default function Rapor() {
   const isTeacher = canVerifyAsTeacher;
   const canSchedule = canVerifyAsAcademic;
   const [schedules, setSchedules] = useState<PublicationSchedule[]>([]);
-  const [publishAt, setPublishAt] = useState("");
+  const [publishAtDrafts, setPublishAtDrafts] = useState<Record<string, string>>({});
   const [weights, setWeights] = useState(WEIGHTS);
   const [themes, setThemes] = useState<Theme[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
@@ -51,9 +55,10 @@ export default function Rapor() {
   }, [term]);
   const r = rows.find((x) => x.id === id) ?? rows[0];
   useEffect(() => { if (r?.classroom_id) void api<Theme[]>(`/themes?classroom_id=${r.classroom_id}&term=${encodeURIComponent(term)}`, []).then(setThemes); }, [r?.classroom_id, term]);
-  if (!r) return <p className="mt-10">No student records are available for this academic year.</p>;
   const schedule = schedules.find((item) => item.term === term);
-  const publicationReached = !schedule || currentTime >= new Date(schedule.publish_at).getTime();
+  const publishAt = publishAtDrafts[term] ?? (schedule ? toLocalDateTimeInput(schedule.publish_at) : "");
+  if (!r) return <p className="mt-10">No student records are available for this academic year.</p>;
+  const publicationReached = Boolean(schedule && currentTime >= new Date(schedule.publish_at).getTime());
   const canRequestRevision = isTeacher && Boolean(r.published_at && schedule && currentTime >= new Date(schedule.publish_at).getTime());
   const assignmentComplete = r.quiz_count
     ? r.quiz_scores?.length === r.quiz_count
@@ -92,6 +97,9 @@ export default function Rapor() {
     }, "Report publication date saved.");
     if (result.id) {
       setSchedules((items) => [result, ...items.filter((item) => item.term !== result.term)]);
+      setPublishAtDrafts((drafts) => Object.fromEntries(
+        Object.entries(drafts).filter(([draftTerm]) => draftTerm !== result.term),
+      ));
     }
   }
   async function publishSchedule(scheduleItem: PublicationSchedule) {
@@ -116,7 +124,7 @@ export default function Rapor() {
         {canVerifyAsAcademic && <button onClick={() => void verify("academic")} disabled={Boolean(!r.teacher_verified_at || r.published_at || !publicationReached)} className="rounded-xl border border-[var(--mint)] px-4 py-2 font-semibold text-[var(--mint)] disabled:cursor-not-allowed disabled:opacity-45">{r.published_at ? "Published" : r.teacher_verified_at ? "Academic approve & publish" : "Awaiting teacher approval"}</button>}
         {canRequestRevision && <button onClick={reopen} className="rounded-xl border border-amber-500 px-4 py-2 font-semibold text-amber-700">Request report revision</button>}
       </div>
-      {canSchedule && <section className="no-print mt-5 rounded-2xl border border-[var(--line)] bg-white p-5"><h2 className="text-xl font-extrabold">Report publication schedule</h2><form onSubmit={saveSchedule} className="mt-3 flex flex-wrap items-end gap-3"><label className="text-sm font-semibold">Academic period<input value={academicYearLabel(term, academicYears)} readOnly className="mt-1 block rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3 py-2" /></label><label className="text-sm font-semibold">Publication date<input required type="datetime-local" value={publishAt} onChange={(e) => setPublishAt(e.target.value)} className="mt-1 block rounded-lg border border-[var(--line)] bg-white px-3 py-2" /></label><button className="rounded-xl bg-[var(--ink)] px-4 py-2 font-semibold text-white">Save publication date</button></form><div className="mt-4 space-y-2">{schedules.map((scheduleItem) => <div key={scheduleItem.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-[var(--paper)] p-3"><span className="mr-auto font-semibold">{academicYearLabel(scheduleItem.term, academicYears)} · Publish {new Date(scheduleItem.publish_at).toLocaleString("en-US")}</span><span className="text-sm opacity-70">{scheduleItem.status === "published" ? "Published" : scheduleItem.status === "partial" ? "Partially published" : "Scheduled"}</span>{scheduleItem.status !== "published" && <button disabled={!currentTime || currentTime < new Date(scheduleItem.publish_at).getTime()} onClick={() => void publishSchedule(scheduleItem)} className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45">Publish ready reports</button>}</div>)}</div></section>}
+      {canSchedule && <section className="no-print mt-5 rounded-2xl border border-[var(--line)] bg-white p-5"><h2 className="text-xl font-extrabold">Report publication schedule</h2><form onSubmit={saveSchedule} className="mt-3 flex flex-wrap items-end gap-3"><label className="text-sm font-semibold">Academic period<input value={academicYearLabel(term, academicYears)} readOnly className="mt-1 block rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3 py-2" /></label><label className="text-sm font-semibold">Publication date<input required type="datetime-local" value={publishAt} onChange={(e) => setPublishAtDrafts((drafts) => ({ ...drafts, [term]: e.target.value }))} className="mt-1 block rounded-lg border border-[var(--line)] bg-white px-3 py-2" /></label><button className="rounded-xl bg-[var(--ink)] px-4 py-2 font-semibold text-white">{schedule ? "Update publication date" : "Save publication date"}</button></form><p className="mt-2 text-sm opacity-70">{schedule ? "The saved date stays in effect until you save a change." : "No publication date or time has been set for this academic year."}</p><div className="mt-4 space-y-2">{schedules.map((scheduleItem) => <div key={scheduleItem.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-[var(--paper)] p-3"><span className="mr-auto font-semibold">{academicYearLabel(scheduleItem.term, academicYears)} · Publish {new Date(scheduleItem.publish_at).toLocaleString("en-US")}</span><span className="text-sm opacity-70">{scheduleItem.status === "published" ? "Published" : scheduleItem.status === "partial" ? "Partially published" : "Scheduled"}</span>{scheduleItem.status !== "published" && <button disabled={!currentTime || currentTime < new Date(scheduleItem.publish_at).getTime()} onClick={() => void publishSchedule(scheduleItem)} className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45">Publish ready reports</button>}</div>)}</div></section>}
 
       <article key={r.id} className="report-sheet mt-6">
         <header className="report-header">
