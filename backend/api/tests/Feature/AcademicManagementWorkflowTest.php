@@ -7,6 +7,7 @@ use App\Models\Enrollment;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AcademicManagementWorkflowTest extends TestCase
@@ -85,6 +86,37 @@ class AcademicManagementWorkflowTest extends TestCase
 
         $this->assertDatabaseMissing('classrooms', ['name' => 'MARK']);
         $this->assertDatabaseMissing('users', ['email' => 'forbidden@example.test']);
+    }
+
+    public function test_admin_and_academic_admin_can_reset_teacher_password_and_revoke_sessions(): void
+    {
+        foreach (['admin', 'academic_admin'] as $role) {
+            $administrator = User::factory()->create(['role' => $role]);
+            $teacher = User::factory()->create(['role' => 'teacher', 'password' => 'old-password']);
+            $teacher->createToken('teacher-session');
+
+            $response = $this->actingAs($administrator)
+                ->postJson("/api/teachers/{$teacher->id}/reset-password")
+                ->assertOk()
+                ->assertJsonStructure(['password']);
+
+            $temporaryPassword = $response->json('password');
+            $this->assertSame(12, strlen($temporaryPassword));
+            $this->assertTrue(Hash::check($temporaryPassword, $teacher->fresh()->password));
+            $this->assertDatabaseCount('personal_access_tokens', 0);
+        }
+    }
+
+    public function test_teacher_cannot_reset_another_teachers_password(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+        $target = User::factory()->create(['role' => 'teacher', 'password' => 'old-password']);
+
+        $this->actingAs($teacher)
+            ->postJson("/api/teachers/{$target->id}/reset-password")
+            ->assertForbidden();
+
+        $this->assertTrue(Hash::check('old-password', $target->fresh()->password));
     }
 
     public function test_student_sector_must_be_selected_from_the_allowed_options(): void

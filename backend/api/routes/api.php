@@ -55,6 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/teachers', [S::class, 'teachers']);
     Route::post('/teachers', [S::class, 'createTeacher']);
     Route::patch('/teachers/{teacher}', [S::class, 'updateTeacher']);
+    Route::post('/teachers/{teacher}/reset-password', [S::class, 'resetTeacherPassword']);
     Route::delete('/teachers/{teacher}', [S::class, 'deleteTeacher']);
     Route::post('/classrooms', [S::class, 'createClassroom']);
     Route::patch('/classrooms/{classroom}', [S::class, 'updateClassroom']);

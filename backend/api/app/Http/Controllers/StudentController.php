@@ -135,6 +135,18 @@ class StudentController extends Controller
         return ['ok' => true];
     }
 
+    public function resetTeacherPassword(Request $r, User $teacher)
+    {
+        abort_unless($r->user()->hasAnyRole(['admin', 'academic_admin']), 403);
+        abort_unless($teacher->role === 'teacher', 404);
+
+        $password = Str::random(12);
+        $teacher->forceFill(['password' => Hash::make($password)])->save();
+        $teacher->tokens()->delete();
+
+        return ['password' => $password];
+    }
+
     public function classrooms(Request $r)
     {
         $q = Classroom::with(['teacher:id,name', 'teachers:id,name']);
