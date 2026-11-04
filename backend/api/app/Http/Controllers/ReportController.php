@@ -5,12 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Enrollment;
 use App\Models\Quiz;
 use App\Models\QuizScore;
-use App\Models\ReportPublicationSchedule;
 use Illuminate\Http\Request;
+use App\Services\PublishDueReports;
 
 class ReportController extends Controller
 {
-    public function verify(Request $request, Enrollment $enrollment)
+    public function verify(Request $request, Enrollment $enrollment, PublishDueReports $publisher)
     {
         $user = $request->user();
         $isTeacher = $user->hasRole('teacher');
@@ -48,12 +48,21 @@ class ReportController extends Controller
         if ($stage === 'academic') {
             abort_unless($isAcademic, 403);
             abort_if(! $enrollment->teacher_verified_at, 409, 'Teacher harus memverifikasi e-report sebelum dipublikasikan.');
-            $schedule = ReportPublicationSchedule::where('term', $enrollment->term)->first();
-            abort_if(! $schedule, 409, 'Jadwal publikasi belum ditentukan.');
-            abort_if($schedule->publish_at->isFuture(), 409, 'Publikasi belum mencapai tanggal yang dijadwalkan.');
-            $enrollment->update(['academic_verified_at' => now(), 'published_at' => now(), 'revision_requested_at' => null]);
+            $enrollment->update(['academic_verified_at' => now()]);
+            $publisher->publish();
         }
         abort_unless(in_array($stage, ['teacher', 'academic'], true), 422);
+
+        return $enrollment->fresh();
+    }
+
+    public function schedule(Request $request, Enrollment $enrollment, PublishDueReports $publisher)
+    {
+        abort_unless($request->user()->hasAnyRole(['admin', 'academic_admin']), 403);
+        abort_if($enrollment->published_at, 409, 'Jadwal tidak dapat diubah setelah e-report dipublikasikan.');
+        $data = $request->validate(['publish_at' => 'nullable|date']);
+        $enrollment->update(['report_publish_at' => $data['publish_at'] ?? null]);
+        $publisher->publish();
 
         return $enrollment->fresh();
     }
@@ -67,12 +76,11 @@ class ReportController extends Controller
             403,
         );
         abort_unless($enrollment->published_at, 409, 'E-report belum pernah dipublikasikan.');
-        $schedule = ReportPublicationSchedule::where('term', $enrollment->term)->first();
-        abort_unless($schedule && ! $schedule->publish_at->isFuture(), 409, 'Revisi hanya tersedia setelah tanggal publikasi.');
 
         $enrollment->update([
             'teacher_verified_at' => null,
             'academic_verified_at' => null,
+            'report_publish_at' => null,
             'published_at' => null,
             'revision_requested_at' => now(),
         ]);

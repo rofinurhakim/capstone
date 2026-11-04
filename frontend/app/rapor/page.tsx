@@ -4,7 +4,6 @@ import { Star } from "lucide-react";
 import { AcademicYear, academicYearLabel, api, avg, BASE, CURRENT_TERM, hasRole, notify, session, Row, SKILLS, WEIGHTS } from "@/lib/api";
 import { BecLogo } from "@/components/BecLogo";
 
-type PublicationSchedule = { id: number; term: string; publish_at: string; status: "scheduled" | "partial" | "published" };
 type Theme = { id: number; theme: string; position: number };
 const LEVELS = ["MATTHEW A", "MATTHEW B", "MARK", "LUKE", "JOHN", "TIMOTHY", "GENESIS", "ECSC"];
 const formatScore = (score: number) => score.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -29,8 +28,7 @@ export default function Rapor() {
   const canVerifyAsAcademic = hasRole("admin") || hasRole("academic_admin");
   const isTeacher = canVerifyAsTeacher;
   const canSchedule = canVerifyAsAcademic;
-  const [schedules, setSchedules] = useState<PublicationSchedule[]>([]);
-  const [publishAtDrafts, setPublishAtDrafts] = useState<Record<string, string>>({});
+  const [publishAtDrafts, setPublishAtDrafts] = useState<Record<number, string>>({});
   const [weights, setWeights] = useState(WEIGHTS);
   const [themes, setThemes] = useState<Theme[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
@@ -41,6 +39,13 @@ export default function Rapor() {
     return () => window.clearInterval(interval);
   }, []);
   useEffect(() => {
+    if (!currentTime) return;
+    const interval = window.setInterval(() => {
+      void api<Row[]>(`/roster?term=${encodeURIComponent(term)}`, []).then(setRows);
+    }, 60_000);
+    return () => window.clearInterval(interval);
+  }, [currentTime, term]);
+  useEffect(() => {
     api<AcademicYear[]>("/academic-years", []).then((items) => {
       setAcademicYears(items);
       const years = items.map((item) => item.term);
@@ -49,17 +54,14 @@ export default function Rapor() {
     });
   }, []);
   useEffect(() => { api<Row[]>(`/roster?term=${encodeURIComponent(term)}`, []).then((r) => { setRows(r); if (r[0]) setId(r[0].id); }); }, [term]);
-  useEffect(() => { if (canSchedule || isTeacher) void api<PublicationSchedule[]>("/report-publications", []).then(setSchedules); }, [canSchedule, isTeacher]);
   useEffect(() => {
     api<{ weights: typeof WEIGHTS }>(`/assessment-weights?term=${encodeURIComponent(term)}`, { weights: WEIGHTS }).then((result) => setWeights(result.weights));
   }, [term]);
   const r = rows.find((x) => x.id === id) ?? rows[0];
   useEffect(() => { if (r?.classroom_id) void api<Theme[]>(`/themes?classroom_id=${r.classroom_id}&term=${encodeURIComponent(term)}`, []).then(setThemes); }, [r?.classroom_id, term]);
-  const schedule = schedules.find((item) => item.term === term);
-  const publishAt = publishAtDrafts[term] ?? (schedule ? toLocalDateTimeInput(schedule.publish_at) : "");
+  const publishAt = publishAtDrafts[r?.id ?? 0] ?? (r?.report_publish_at ? toLocalDateTimeInput(r.report_publish_at) : "");
   if (!r) return <p className="mt-10">No student records are available for this academic year.</p>;
-  const publicationReached = Boolean(schedule && currentTime >= new Date(schedule.publish_at).getTime());
-  const canRequestRevision = isTeacher && Boolean(r.published_at && schedule && currentTime >= new Date(schedule.publish_at).getTime());
+  const canRequestRevision = isTeacher && Boolean(r.published_at);
   const assignmentComplete = r.quiz_count
     ? r.quiz_scores?.length === r.quiz_count
     : typeof r.scores.Assignment === "number";
@@ -71,12 +73,13 @@ export default function Rapor() {
     const result = await api<Row>(`/reports/${r.id}/verify`, {} as Row, {
       method: "PATCH",
       body: JSON.stringify({ stage }),
-    }, stage === "teacher" ? "Report verified by teacher." : "Report approved and published by Academic.");
+    }, stage === "teacher" ? "Report verified by teacher." : "Report approved by Academic. It will publish at the scheduled time.");
     if (result.id) {
       setRows((items) => items.map((item) => item.id === result.id ? {
         ...item,
         teacher_verified_at: result.teacher_verified_at,
         academic_verified_at: result.academic_verified_at,
+        report_publish_at: result.report_publish_at,
         published_at: result.published_at,
         revision_requested_at: result.revision_requested_at,
         report_status: result.report_status,
@@ -86,28 +89,18 @@ export default function Rapor() {
   async function reopen() {
     const result = await api<Row>(`/reports/${r.id}/request-revision`, {} as Row, { method: "POST" }, "Report changed to draft for revision. Save changes and request teacher approval again.");
     if (result.id) {
-      setRows((items) => items.map((item) => item.id === result.id ? { ...item, teacher_verified_at: undefined, academic_verified_at: undefined, published_at: undefined, revision_requested_at: result.revision_requested_at, report_status: "draft" } : item));
+      setRows((items) => items.map((item) => item.id === result.id ? { ...item, teacher_verified_at: undefined, academic_verified_at: undefined, report_publish_at: null, published_at: undefined, revision_requested_at: result.revision_requested_at, report_status: "draft" } : item));
     }
   }
   async function saveSchedule(event: React.FormEvent) {
     event.preventDefault();
-    const result = await api<PublicationSchedule>("/report-publications", {} as PublicationSchedule, {
-      method: "POST",
-      body: JSON.stringify({ term, publish_at: new Date(publishAt).toISOString() }),
-    }, "Report publication date saved.");
+    const result = await api<Row>(`/reports/${r.id}/schedule`, {} as Row, {
+      method: "PATCH",
+      body: JSON.stringify({ publish_at: new Date(publishAt).toISOString() }),
+    }, "This student's publication date was saved.");
     if (result.id) {
-      setSchedules((items) => [result, ...items.filter((item) => item.term !== result.term)]);
-      setPublishAtDrafts((drafts) => Object.fromEntries(
-        Object.entries(drafts).filter(([draftTerm]) => draftTerm !== result.term),
-      ));
-    }
-  }
-  async function publishSchedule(scheduleItem: PublicationSchedule) {
-    const result = await api<PublicationSchedule>(`/report-publications/${scheduleItem.id}/publish`, {} as PublicationSchedule, { method: "POST" }, "Ready reports have been published.");
-    if (result.id) {
-      setSchedules((items) => items.map((item) => item.id === result.id ? result : item));
-      const refreshedRows = await api<Row[]>(`/roster?term=${encodeURIComponent(term)}`, []);
-      setRows(refreshedRows);
+      setRows((items) => items.map((item) => item.id === result.id ? { ...item, report_publish_at: result.report_publish_at, published_at: result.published_at, report_status: result.published_at ? "published" : item.report_status } : item));
+      setPublishAtDrafts((drafts) => Object.fromEntries(Object.entries(drafts).filter(([draftId]) => Number(draftId) !== result.id)));
     }
   }
 
@@ -121,10 +114,10 @@ export default function Rapor() {
         <button onClick={() => { notify("Opening the PDF save dialog."); window.print(); }} className="rounded-xl bg-[var(--ink)] px-4 py-2 font-semibold text-white">{hasRole("parent") ? "Download e-report PDF" : "Print report"}</button>
         {!hasRole("parent") && <button onClick={() => { notify("Preparing the report CSV export."); exportCsv(); }} className="rounded-xl border border-[var(--line)] bg-white px-4 py-2 font-semibold">Export CSV</button>}
         {canVerifyAsTeacher && <button onClick={() => void verify("teacher")} disabled={Boolean(r.teacher_verified_at || r.published_at || !scoresComplete)} className="rounded-xl border border-[var(--mint)] px-4 py-2 font-semibold text-[var(--mint)] disabled:cursor-not-allowed disabled:opacity-45">{r.teacher_verified_at ? "Verified by teacher" : scoresComplete ? "Approve as teacher" : "Complete grades to verify"}</button>}
-        {canVerifyAsAcademic && <button onClick={() => void verify("academic")} disabled={Boolean(!r.teacher_verified_at || r.published_at || !publicationReached)} className="rounded-xl border border-[var(--mint)] px-4 py-2 font-semibold text-[var(--mint)] disabled:cursor-not-allowed disabled:opacity-45">{r.published_at ? "Published" : r.teacher_verified_at ? "Academic approve & publish" : "Awaiting teacher approval"}</button>}
+        {canVerifyAsAcademic && <button onClick={() => void verify("academic")} disabled={Boolean(!r.teacher_verified_at || r.academic_verified_at || r.published_at)} className="rounded-xl border border-[var(--mint)] px-4 py-2 font-semibold text-[var(--mint)] disabled:cursor-not-allowed disabled:opacity-45">{r.published_at ? "Published" : r.academic_verified_at ? "Approved; waiting for publication" : r.teacher_verified_at ? "Approve report" : "Awaiting teacher approval"}</button>}
         {canRequestRevision && <button onClick={reopen} className="rounded-xl border border-amber-500 px-4 py-2 font-semibold text-amber-700">Request report revision</button>}
       </div>
-      {canSchedule && <section className="no-print mt-5 rounded-2xl border border-[var(--line)] bg-white p-5"><h2 className="text-xl font-extrabold">Report publication schedule</h2><form onSubmit={saveSchedule} className="mt-3 flex flex-wrap items-end gap-3"><label className="text-sm font-semibold">Academic period<input value={academicYearLabel(term, academicYears)} readOnly className="mt-1 block rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3 py-2" /></label><label className="text-sm font-semibold">Publication date<input required type="datetime-local" value={publishAt} onChange={(e) => setPublishAtDrafts((drafts) => ({ ...drafts, [term]: e.target.value }))} className="mt-1 block rounded-lg border border-[var(--line)] bg-white px-3 py-2" /></label><button className="rounded-xl bg-[var(--ink)] px-4 py-2 font-semibold text-white">{schedule ? "Update publication date" : "Save publication date"}</button></form><p className="mt-2 text-sm opacity-70">{schedule ? "The saved date stays in effect until you save a change." : "No publication date or time has been set for this academic year."}</p><div className="mt-4 space-y-2">{schedules.map((scheduleItem) => <div key={scheduleItem.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-[var(--paper)] p-3"><span className="mr-auto font-semibold">{academicYearLabel(scheduleItem.term, academicYears)} · Publish {new Date(scheduleItem.publish_at).toLocaleString("en-US")}</span><span className="text-sm opacity-70">{scheduleItem.status === "published" ? "Published" : scheduleItem.status === "partial" ? "Partially published" : "Scheduled"}</span>{scheduleItem.status !== "published" && <button disabled={!currentTime || currentTime < new Date(scheduleItem.publish_at).getTime()} onClick={() => void publishSchedule(scheduleItem)} className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45">Publish ready reports</button>}</div>)}</div></section>}
+      {canSchedule && <section className="no-print mt-5 rounded-2xl border border-[var(--line)] bg-white p-5"><h2 className="text-xl font-extrabold">Publication schedule for {r.name}</h2><p className="mt-1 text-sm opacity-70">Each student has an independent publication date. After the teacher and Academic approve this report, it will be published automatically at the scheduled time (checked every minute).</p><form onSubmit={saveSchedule} className="mt-3 flex flex-wrap items-end gap-3"><label className="text-sm font-semibold">Student<input value={r.name} readOnly className="mt-1 block rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3 py-2" /></label><label className="text-sm font-semibold">Publication date and time<input required type="datetime-local" value={publishAt} onChange={(e) => setPublishAtDrafts((drafts) => ({ ...drafts, [r.id]: e.target.value }))} className="mt-1 block rounded-lg border border-[var(--line)] bg-white px-3 py-2" /></label><button disabled={Boolean(r.published_at)} className="rounded-xl bg-[var(--ink)] px-4 py-2 font-semibold text-white disabled:opacity-50">{r.report_publish_at ? "Update this student's date" : "Set this student's date"}</button></form><p className="mt-2 text-sm opacity-70">{r.published_at ? "This report has been published." : r.report_publish_at ? `Saved: ${new Date(r.report_publish_at).toLocaleString("en-US")}` : "No publication date or time has been set for this student."}</p></section>}
 
       <article key={r.id} className="report-sheet mt-6">
         <header className="report-header">

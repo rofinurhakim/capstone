@@ -12,6 +12,7 @@ use App\Models\Score;
 use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\PublishDueReports;
 
 class AcademicController extends Controller
 {
@@ -94,6 +95,7 @@ class AcademicController extends Controller
 
     public function roster(Request $r)
     {
+        app(PublishDueReports::class)->publish();
         $term = $this->academicYear($r);
         $q = $this->visible(Enrollment::with(['student', 'classroom.teacher', 'classroom.teachers', 'scores', 'attendances', 'quizScores.quiz'])->where('term', $term), $r);
         if ($r->user()->hasRole('parent') && ! $r->boolean('include_pending')) {
@@ -148,9 +150,10 @@ class AcademicController extends Controller
             'confirmed_at' => $e->confirmed_at,
             'teacher_verified_at' => $e->teacher_verified_at,
             'academic_verified_at' => $e->academic_verified_at,
+            'report_publish_at' => $e->report_publish_at,
             'published_at' => $e->published_at,
             'revision_requested_at' => $e->revision_requested_at,
-            'report_status' => $e->published_at ? 'published' : ($e->revision_requested_at ? 'draft' : ($e->teacher_verified_at ? 'awaiting_academic_approval' : 'draft')),
+            'report_status' => $e->published_at ? 'published' : ($e->revision_requested_at ? 'draft' : ($e->academic_verified_at ? 'awaiting_publication' : ($e->teacher_verified_at ? 'awaiting_academic_approval' : 'draft'))),
             'name' => $e->student->name,
             'nis' => $e->student->nis,
             'gender' => $e->student->gender,

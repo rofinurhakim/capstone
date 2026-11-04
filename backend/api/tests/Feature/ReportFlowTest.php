@@ -7,7 +7,6 @@ use App\Models\Classroom;
 use App\Models\Enrollment;
 use App\Models\Quiz;
 use App\Models\QuizScore;
-use App\Models\ReportPublicationSchedule;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -40,12 +39,7 @@ class ReportFlowTest extends TestCase
         $teacher = User::factory()->create(['role' => 'teacher']);
         $enrollment = $this->createEnrollment($teacher);
         $academicAdmin = User::factory()->create(['role' => 'academic_admin']);
-        ReportPublicationSchedule::create([
-            'term' => $enrollment->term,
-            'publish_at' => now(),
-            'status' => 'scheduled',
-            'created_by' => $academicAdmin->id,
-        ]);
+        $enrollment->update(['report_publish_at' => now()]);
 
         $this->actingAs($teacher)
             ->patchJson("/api/reports/{$enrollment->id}/verify")
@@ -61,7 +55,7 @@ class ReportFlowTest extends TestCase
         $this->assertNotNull($enrollment->published_at);
     }
 
-    public function test_academic_admin_cannot_publish_until_a_schedule_is_set(): void
+    public function test_academic_approval_does_not_publish_without_an_individual_schedule(): void
     {
         $teacher = User::factory()->create(['role' => 'teacher']);
         $enrollment = $this->createEnrollment($teacher);
@@ -72,35 +66,57 @@ class ReportFlowTest extends TestCase
 
         $this->actingAs($academicAdmin)
             ->patchJson("/api/reports/{$enrollment->id}/verify")
-            ->assertStatus(409)
-            ->assertJsonPath('message', 'Jadwal publikasi belum ditentukan.');
+            ->assertOk()
+            ->assertJsonPath('academic_verified_at', fn ($value) => $value !== null)
+            ->assertJsonPath('published_at', null);
 
         $this->assertNull($enrollment->fresh()->published_at);
     }
 
-    public function test_publication_schedule_holds_reports_that_are_not_verified_yet(): void
+    public function test_each_student_can_have_a_different_publication_time(): void
     {
         $teacher = User::factory()->create(['role' => 'teacher']);
-        $enrollment = $this->createEnrollment($teacher);
+        $first = $this->createEnrollment($teacher);
+        $second = $this->createEnrollment($teacher);
         $academicAdmin = User::factory()->create(['role' => 'academic_admin']);
-        $schedule = ReportPublicationSchedule::create([
-            'term' => '2026',
-            'publish_at' => now(),
-            'status' => 'scheduled',
-            'created_by' => $academicAdmin->id,
-        ]);
+        $firstTime = now()->addMinute()->startOfMinute();
+        $secondTime = now()->addMinutes(10)->startOfMinute();
 
         $this->actingAs($academicAdmin)
-            ->postJson("/api/report-publications/{$schedule->id}/publish")
+            ->patchJson("/api/reports/{$first->id}/schedule", ['publish_at' => $firstTime->toIso8601String()])
             ->assertOk()
-            ->assertJsonPath('status', 'partial');
+            ->assertJsonPath('report_publish_at', $firstTime->toISOString());
+        $this->patchJson("/api/reports/{$second->id}/schedule", ['publish_at' => $secondTime->toIso8601String()])
+            ->assertOk()
+            ->assertJsonPath('report_publish_at', $secondTime->toISOString());
 
-        $this->assertDatabaseHas('report_publication_schedules', [
-            'id' => $schedule->id,
-            'status' => 'partial',
-            'published_by' => $academicAdmin->id,
+        $this->assertNotSame(
+            $first->fresh()->report_publish_at->toISOString(),
+            $second->fresh()->report_publish_at->toISOString(),
+        );
+    }
+
+    public function test_due_reports_publish_independently_only_after_both_approvals(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+        $first = $this->createEnrollment($teacher);
+        $second = $this->createEnrollment($teacher);
+        $academicAdmin = User::factory()->create(['role' => 'academic_admin']);
+        $first->update([
+            'teacher_verified_at' => now(),
+            'academic_verified_at' => now(),
+            'report_publish_at' => now()->subMinute(),
         ]);
-        $this->assertNull($enrollment->fresh()->published_at);
+        $second->update([
+            'teacher_verified_at' => now(),
+            'academic_verified_at' => now(),
+            'report_publish_at' => now()->addMinute(),
+        ]);
+
+        $this->artisan('reports:publish-due')->assertSuccessful();
+
+        $this->assertNotNull($first->fresh()->published_at);
+        $this->assertNull($second->fresh()->published_at);
     }
 
     public function test_teacher_cannot_verify_until_all_required_scores_are_recorded(): void
@@ -120,13 +136,7 @@ class ReportFlowTest extends TestCase
     {
         $teacher = User::factory()->create(['role' => 'teacher']);
         $enrollment = $this->createEnrollment($teacher);
-        $academicAdmin = User::factory()->create(['role' => 'academic_admin']);
-        ReportPublicationSchedule::create([
-            'term' => $enrollment->term,
-            'publish_at' => now()->addDays(2),
-            'status' => 'scheduled',
-            'created_by' => $academicAdmin->id,
-        ]);
+        $enrollment->update(['report_publish_at' => now()->addDays(2)]);
 
         $this->actingAs($teacher)
             ->patchJson("/api/reports/{$enrollment->id}/verify")
@@ -365,16 +375,10 @@ class ReportFlowTest extends TestCase
         $enrollment->update([
             'teacher_verified_at' => now(),
             'academic_verified_at' => now(),
+            'report_publish_at' => now()->subDay(),
             'published_at' => now(),
         ]);
         $academicAdmin = User::factory()->create(['role' => 'academic_admin']);
-        ReportPublicationSchedule::create([
-            'term' => $enrollment->term,
-            'publish_at' => now()->subDay(),
-            'status' => 'published',
-            'created_by' => $academicAdmin->id,
-            'published_by' => $academicAdmin->id,
-        ]);
 
         $this->actingAs($teacher)
             ->postJson("/api/reports/{$enrollment->id}/request-revision")
@@ -393,6 +397,9 @@ class ReportFlowTest extends TestCase
 
         $this->actingAs($teacher)
             ->patchJson("/api/reports/{$enrollment->id}/verify", ['stage' => 'teacher'])
+            ->assertOk();
+        $this->actingAs($academicAdmin)
+            ->patchJson("/api/reports/{$enrollment->id}/schedule", ['publish_at' => now()->toIso8601String()])
             ->assertOk();
         $this->actingAs($academicAdmin)
             ->patchJson("/api/reports/{$enrollment->id}/verify", ['stage' => 'academic'])

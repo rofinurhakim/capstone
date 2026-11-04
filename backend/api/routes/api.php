@@ -44,9 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/quizzes', [QuizController::class, 'store']);
     Route::post('/quiz-scores', [QuizController::class, 'saveScores']);
     Route::patch('/reports/{enrollment}/verify', [ReportController::class, 'verify']);
-    Route::get('/report-publications', [AcademicExtrasController::class, 'schedules']);
-    Route::post('/report-publications', [AcademicExtrasController::class, 'storeSchedule']);
-    Route::post('/report-publications/{schedule}/publish', [AcademicExtrasController::class, 'publishSchedule']);
+    Route::patch('/reports/{enrollment}/schedule', [ReportController::class, 'schedule']);
     Route::get('/assessment-weights', [AcademicExtrasController::class, 'assessmentWeights']);
     Route::put('/assessment-weights', [AcademicExtrasController::class, 'updateAssessmentWeights']);
     Route::post('/reports/{enrollment}/request-revision', [ReportController::class, 'reopen']);

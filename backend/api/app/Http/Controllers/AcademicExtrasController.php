@@ -6,7 +6,6 @@ use App\Models\Classroom;
 use App\Models\ClassroomTheme;
 use App\Models\AssessmentWeight;
 use App\Models\Enrollment;
-use App\Models\ReportPublicationSchedule;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -15,51 +14,6 @@ class AcademicExtrasController extends Controller
     private function canManage(Request $request): void
     {
         abort_unless($request->user()->hasAnyRole(['admin', 'academic_admin']), 403);
-    }
-
-    public function schedules()
-    {
-        return ReportPublicationSchedule::orderByDesc('publish_at')->get();
-    }
-
-    public function storeSchedule(Request $request)
-    {
-        $this->canManage($request);
-        $data = $request->validate([
-            'term' => ['required', 'regex:/^\d{4}$/'],
-            'publish_at' => 'required|date',
-        ]);
-        abort_if(
-            Enrollment::where('term', $data['term'])->whereNotNull('published_at')->exists(),
-            409,
-            'Jadwal tidak dapat diubah setelah rapor periode ini dipublikasikan.',
-        );
-
-        return ReportPublicationSchedule::updateOrCreate(
-            ['term' => $data['term']],
-            $data + ['created_by' => $request->user()->id, 'status' => 'scheduled'],
-        );
-    }
-
-    public function publishSchedule(Request $request, ReportPublicationSchedule $schedule)
-    {
-        $this->canManage($request);
-        abort_if($schedule->publish_at->isFuture(), 409, 'Publikasi belum mencapai tanggal yang dijadwalkan.');
-        Enrollment::where('term', $schedule->term)
-            ->where('status', 'confirmed')
-            ->whereNotNull('teacher_verified_at')
-            ->whereNull('published_at')
-            ->update(['academic_verified_at' => now(), 'published_at' => now()]);
-        $hasUnpublishedReports = Enrollment::where('term', $schedule->term)
-            ->where('status', 'confirmed')
-            ->whereNull('published_at')
-            ->exists();
-        $schedule->update([
-            'status' => $hasUnpublishedReports ? 'partial' : 'published',
-            'published_by' => $request->user()->id,
-        ]);
-
-        return $schedule->fresh();
     }
 
     public function assessmentWeights(Request $request)
