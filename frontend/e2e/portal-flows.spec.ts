@@ -66,7 +66,8 @@ test("academic admin can reach all operational screens and open action modals", 
   await expect(page.getByRole("button", { name: "Register student" })).toBeVisible();
 
   await page.goto("/kelas");
-  await page.getByRole("button", { name: "Add class" }).click();
+  await expect(page.getByRole("heading", { name: "Class sections" })).toBeVisible();
+  await page.getByRole("button", { name: "Add section" }).click();
   await expect(page.getByRole("heading", { name: "Add class" })).toBeVisible();
   await page.getByRole("button", { name: "Cancel" }).click();
 
