@@ -60,9 +60,10 @@ test("academic admin can reach all operational screens and open action modals", 
   await expect(page.getByRole("heading", { name: "404", exact: true })).toBeVisible();
 
   await page.goto("/murid-baru");
-  await page.getByRole("button", { name: "Open student registration form" }).click();
-  await expect(page.getByRole("heading", { name: "Register a new student" }).last()).toBeVisible();
-  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("heading", { name: "Student information" })).toBeVisible();
+  await expect(page.getByLabel("Student name")).toBeVisible();
+  await expect(page.getByLabel("Parent/guardian email")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Register student" })).toBeVisible();
 
   await page.goto("/kelas");
   await page.getByRole("button", { name: "Add class" }).click();
