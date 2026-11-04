@@ -88,7 +88,7 @@ export default function Rapor() {
     event.preventDefault();
     const result = await api<PublicationSchedule>("/report-publications", {} as PublicationSchedule, {
       method: "POST",
-      body: JSON.stringify({ term, publish_at: publishAt }),
+      body: JSON.stringify({ term, publish_at: new Date(publishAt).toISOString() }),
     }, "Report publication date saved.");
     if (result.id) {
       setSchedules((items) => [result, ...items.filter((item) => item.term !== result.term)]);
