@@ -40,7 +40,7 @@ h1, h2, h3 { font-family: var(--font-head), system-ui, sans-serif; letter-spacin
 .report-footer { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1rem; padding-top: 1rem; color: #171717; font-size: .85rem; font-weight: 800; }.report-footer span { min-width: 0; overflow-wrap: anywhere; }.report-footer small { display: block; margin-top: .25rem; font-weight: 500; opacity: .7; }
 @page { size: A4 portrait; margin: 5mm; }
 @media print {
-	nav, .no-print, .app-sidebar, .mobile-topbar, .mobile-sidebar-backdrop { display: none !important; }
+	nav, .no-print, .app-sidebar, .app-topbar, .mobile-topbar, .mobile-sidebar-backdrop { display: none !important; }
 	html, body { background: #fff !important; }
 	body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 	main { max-width: none !important; padding: 0 !important; }
