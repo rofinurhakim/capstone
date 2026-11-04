@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { BookOpen, ChevronRight, GraduationCap, KeyRound, Mail, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import { BookOpen, CalendarDays, ChevronRight, GraduationCap, KeyRound, Mail, School, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { api, logout, session, STUDENT_SECTORS } from "@/lib/api";
 import { PasswordInput } from "@/components/PasswordInput";
 
@@ -73,21 +73,36 @@ export default function Akun() {
           </form>
         </section>}
 
-        {role === "parent" && <section className="overflow-hidden rounded-[1.5rem] border border-[#dce5f7] bg-white shadow-[0_12px_30px_rgba(32,58,112,.08)] xl:col-span-2">
-          <div className="flex items-center gap-2 border-b border-[#e5ebf8] bg-[#f0f4ff] px-5 py-3"><UsersRound size={18} className="text-[#3975db]" /><div><h2 className="text-sm font-extrabold text-[#1b3567]">Child information</h2><p className="text-xs text-[#7182a3]">Keep the student&apos;s details current for school records.</p></div></div>
-          {students.length === 0 && <p className="p-5 text-sm text-[#7182a3]">No student records are linked to this account.</p>}
-          <div className="divide-y divide-[#e8edf7]">{students.map((student) => <form key={student.id} onSubmit={(event) => void saveStudent(event, student)} className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
-            <div className="flex items-center gap-2 sm:col-span-2"><span className="grid size-9 place-items-center rounded-xl bg-[#edf3ff] text-[#3975db]"><BookOpen size={17} /></span><div><h3 className="text-sm font-extrabold text-[#24385d]">{student.name}</h3><p className="text-[11px] text-[#7182a3]">Student details</p></div></div>
-            <label className={fieldLabel}>Full name<input required maxLength={100} value={student.name} onChange={(event) => updateStudent(student.id, "name", event.target.value)} className={c} /></label>
-            <label className={fieldLabel}>Date of birth<input type="date" value={student.birth_date ?? ""} onChange={(event) => updateStudent(student.id, "birth_date", event.target.value)} className={c} /></label>
-            <label className={fieldLabel}>Gender<select value={student.gender ?? ""} onChange={(event) => updateStudent(student.id, "gender", event.target.value)} className={c}><option value="">Not provided</option><option value="male">Male</option><option value="female">Female</option></select></label>
-            <label className={fieldLabel}>School name<input value={student.school_name ?? ""} onChange={(event) => updateStudent(student.id, "school_name", event.target.value)} className={c} /></label>
-            <label className={fieldLabel}>School class<input value={student.school_class ?? ""} onChange={(event) => updateStudent(student.id, "school_class", event.target.value)} className={c} placeholder="1SD, 1SMP" /></label>
-            <label className={fieldLabel}>Sector<select value={student.sector ?? ""} onChange={(event) => updateStudent(student.id, "sector", event.target.value)} className={c}><option value="">Select sector</option>{STUDENT_SECTORS.map((sector) => <option key={sector} value={sector}>{sector}</option>)}</select></label>
-            <label className={fieldLabel}>Student phone<input value={student.phone ?? ""} onChange={(event) => updateStudent(student.id, "phone", event.target.value)} className={c} inputMode="tel" /></label>
-            <label className={fieldLabel}>Parent/guardian phone<input value={student.guardian_phone ?? ""} onChange={(event) => updateStudent(student.id, "guardian_phone", event.target.value)} className={c} inputMode="tel" /></label>
-            <label className={fieldLabel}>Guardian relationship<input value={student.guardian_relation ?? ""} onChange={(event) => updateStudent(student.id, "guardian_relation", event.target.value)} className={c} /></label>
-            <div className="flex justify-end border-t border-[#e8edf7] pt-3 sm:col-span-2"><button className="rounded-xl bg-gradient-to-r from-[#315ca6] to-[#24457f] px-4 py-2.5 text-sm font-bold text-white shadow-sm">Save student information</button></div>
+        {role === "parent" && <section className="xl:col-span-2">
+          <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-[#dce5f7] bg-white/80 px-4 py-3">
+            <span className="grid size-10 place-items-center rounded-xl bg-[#edf3ff] text-[#3975db]"><UsersRound size={19} /></span>
+            <div><h2 className="text-sm font-extrabold text-[#1b3567]">Child information</h2><p className="text-xs text-[#7182a3]">Review and update your child&apos;s profile information.</p></div>
+            <span className="ml-auto rounded-full bg-[#edf3ff] px-3 py-1 text-[11px] font-bold text-[#315ca6]">{students.length} {students.length === 1 ? "student" : "students"}</span>
+          </div>
+          {students.length === 0 && <div className="rounded-2xl border border-dashed border-[#dce5f7] bg-white p-8 text-center text-sm text-[#7182a3]">No student records are linked to this account.</div>}
+          <div className="grid items-start gap-4 lg:grid-cols-2">{students.map((student) => <form key={student.id} onSubmit={(event) => void saveStudent(event, student)} className="overflow-hidden rounded-[1.5rem] border border-[#dce5f7] bg-white shadow-[0_12px_30px_rgba(32,58,112,.08)]">
+            <header className="relative overflow-hidden border-b border-[#e5ebf8] bg-gradient-to-br from-[#eef3ff] via-white to-[#e6efff] p-4 sm:p-5">
+              <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-14 size-40 rounded-full bg-[#dbe7ff]/70 blur-2xl" />
+              <div className="relative flex items-center gap-3">
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#4d83e5] to-[#3162c3] text-white shadow-sm"><BookOpen size={20} /></span>
+                <div className="min-w-0"><h3 className="truncate text-base font-extrabold text-[#1b3567]">{student.name}</h3><p className="text-xs text-[#7182a3]">Student profile · ID #{student.id}</p></div>
+                <span className="ml-auto hidden items-center gap-1 rounded-full border border-[#dce6ff] bg-white/80 px-2.5 py-1 text-[10px] font-bold text-[#416199] sm:inline-flex"><UserRound size={12} />Profile</span>
+              </div>
+            </header>
+            <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
+              <div className="flex items-center gap-2 border-b border-[#edf1f8] pb-2 sm:col-span-2"><UserRound size={15} className="text-[#3975db]" /><p className="text-xs font-extrabold uppercase tracking-wide text-[#52678f]">Personal information</p></div>
+              <label className={fieldLabel}>Full name<input required maxLength={100} value={student.name} onChange={(event) => updateStudent(student.id, "name", event.target.value)} className={c} /></label>
+              <label className={fieldLabel}><span className="inline-flex items-center gap-1"><CalendarDays size={13} />Date of birth</span><input type="date" value={student.birth_date ?? ""} onChange={(event) => updateStudent(student.id, "birth_date", event.target.value)} className={c} /></label>
+              <label className={fieldLabel}>Gender<select value={student.gender ?? ""} onChange={(event) => updateStudent(student.id, "gender", event.target.value)} className={c}><option value="">Not provided</option><option value="male">Male</option><option value="female">Female</option></select></label>
+              <label className={fieldLabel}>Student phone<input value={student.phone ?? ""} onChange={(event) => updateStudent(student.id, "phone", event.target.value)} className={c} inputMode="tel" /></label>
+              <div className="flex items-center gap-2 border-b border-[#edf1f8] pb-2 sm:col-span-2"><School size={15} className="text-[#3975db]" /><p className="text-xs font-extrabold uppercase tracking-wide text-[#52678f]">School information</p></div>
+              <label className={fieldLabel}>School name<input value={student.school_name ?? ""} onChange={(event) => updateStudent(student.id, "school_name", event.target.value)} className={c} /></label>
+              <label className={fieldLabel}>School class<input value={student.school_class ?? ""} onChange={(event) => updateStudent(student.id, "school_class", event.target.value)} className={c} placeholder="1SD, 1SMP" /></label>
+              <label className={fieldLabel}>Sector<select value={student.sector ?? ""} onChange={(event) => updateStudent(student.id, "sector", event.target.value)} className={c}><option value="">Select sector</option>{STUDENT_SECTORS.map((sector) => <option key={sector} value={sector}>{sector}</option>)}</select></label>
+              <label className={fieldLabel}>Parent/guardian phone<input value={student.guardian_phone ?? ""} onChange={(event) => updateStudent(student.id, "guardian_phone", event.target.value)} className={c} inputMode="tel" /></label>
+              <label className={`${fieldLabel} sm:col-span-2`}>Guardian relationship<input value={student.guardian_relation ?? ""} onChange={(event) => updateStudent(student.id, "guardian_relation", event.target.value)} className={c} /></label>
+              <div className="flex justify-end border-t border-[#e8edf7] pt-3 sm:col-span-2"><button className="rounded-xl bg-gradient-to-r from-[#315ca6] to-[#24457f] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:brightness-110">Save student information</button></div>
+            </div>
           </form>)}</div>
         </section>}
 
