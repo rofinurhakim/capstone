@@ -8,7 +8,7 @@ export const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/ap
 export const CURRENT_TERM = String(new Date().getFullYear());
 
 export type Role = "admin" | "academic_admin" | "teacher" | "parent";
-export type AcademicYear = { term: string; start_date: string; end_date: string };
+export type AcademicYear = { term: string; start_date: string; end_date: string; registration_locked?: boolean; registration_lock_date?: string };
 export function academicYearLabel(term: string, academicYears: AcademicYear[] = []): string {
   const period = academicYears.find((year) => year.term === term);
   const start = period?.start_date ?? `${term}-08-01`;
@@ -59,6 +59,7 @@ function englishError(message: string): string {
     "E-report yang sudah dipublikasikan harus dibuka untuk revisi sebelum absensi diubah.": "Reopen the published report for revision before changing attendance.",
     "E-report yang sudah dipublikasikan harus dibuka untuk revisi sebelum nilai diubah.": "Reopen the published report for revision before changing scores.",
     "Teacher harus memverifikasi e-report sebelum dipublikasikan.": "The teacher must verify this report before it can be published.",
+    "Pendaftaran siswa baru untuk tahun ajaran ini sudah ditutup. Silakan pilih tahun ajaran berikutnya.": "New student registration for this academic year is closed. Please select the next academic year.",
   };
   if (translations[message]) return translations[message];
   if (message.includes("has already been taken")) return "This value is already in use.";

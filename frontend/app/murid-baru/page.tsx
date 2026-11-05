@@ -1,14 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import { CalendarDays, ChevronRight, GraduationCap, UserRoundPlus, UsersRound } from "lucide-react";
-import { AcademicYear, academicYearLabel, api, CURRENT_TERM, STUDENT_SECTORS } from "@/lib/api";
+import { AcademicYear, academicYearLabel, api, STUDENT_SECTORS } from "@/lib/api";
 
 type Res = { student?: { name: string; nis: string }; guardianPassword?: string | null };
-const empty = { name: "", gender: "", birth_date: "", school_name: "", school_class: "", sector: "", phone: "", guardian_phone: "", guardian_relation: "", guardian_name: "", guardian_email: "", term: CURRENT_TERM };
+const empty = { name: "", gender: "", birth_date: "", school_name: "", school_class: "", sector: "", phone: "", guardian_phone: "", guardian_relation: "", guardian_name: "", guardian_email: "", term: "" };
 
 export default function MuridBaru() {
   const [f, setF] = useState(empty);
-  const [terms, setTerms] = useState<string[]>([CURRENT_TERM]);
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [res, setRes] = useState<Res | null>(null);
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
@@ -16,9 +15,11 @@ export default function MuridBaru() {
   useEffect(() => {
     void api<AcademicYear[]>("/academic-years", []).then((items) => {
       setAcademicYears(items);
-      const years = items.map((item) => item.term);
-      setTerms(years.length ? years : [CURRENT_TERM]);
-      setF((current) => ({ ...current, term: years.includes(current.term) ? current.term : years[0] ?? CURRENT_TERM }));
+      const availableYears = items.filter((item) => !item.registration_locked);
+      setF((current) => ({
+        ...current,
+        term: availableYears.some((item) => item.term === current.term) ? current.term : availableYears[0]?.term ?? "",
+      }));
     });
   }, []);
 
@@ -28,6 +29,7 @@ export default function MuridBaru() {
     if (r.student) { setRes(r); setF({ ...empty, term: f.term }); }
   }
   function clearForm() { setF((current) => ({ ...empty, term: current.term })); setRes(null); }
+  const availableYears = academicYears.filter((year) => !year.registration_locked);
   const c = "mt-1.5 w-full rounded-xl border border-[#dce5f7] bg-white px-3 py-2.5 text-sm font-medium text-[#263d68] outline-none transition focus:border-[#7599e6] focus:ring-2 focus:ring-[#e5edff]";
   const fieldLabel = "block text-xs font-bold text-[#42577f]";
   return (
@@ -59,7 +61,8 @@ export default function MuridBaru() {
           <label className={fieldLabel}>School class<input value={f.school_class} onChange={set("school_class")} className={c} placeholder="1SD, 1SMP" /></label>
           <label className={fieldLabel}>Student phone<input value={f.phone} onChange={set("phone")} className={c} inputMode="tel" /></label>
           <label className={fieldLabel}>Sector<select value={f.sector} onChange={set("sector")} className={c}><option value="">Select sector</option>{STUDENT_SECTORS.map((sector) => <option key={sector} value={sector}>{sector}</option>)}</select></label>
-          <label className={fieldLabel}>Academic period<span className="relative mt-1.5 block"><CalendarDays size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6483be]" /><select required value={f.term} onChange={set("term")} className={`${c} mt-0 w-full pl-9`}>{terms.map((year) => <option key={year} value={year}>{academicYearLabel(year, academicYears)}</option>)}</select></span></label>
+          <label className={fieldLabel}>Academic period<span className="relative mt-1.5 block"><CalendarDays size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6483be]" /><select required value={f.term} onChange={set("term")} className={`${c} mt-0 w-full pl-9`}><option value="" disabled>{availableYears.length ? "Select an academic year" : "No open academic year"}</option>{academicYears.map((year) => <option key={year.term} value={year.term} disabled={year.registration_locked}>{academicYearLabel(year.term, academicYears)}{year.registration_locked ? " (Locked for new registrations)" : ""}</option>)}</select></span></label>
+          {availableYears.length === 0 && <p className="rounded-xl border border-[#f2d89b] bg-[#fff9e9] p-3 text-xs leading-5 text-[#80611d] sm:col-span-2">{academicYears.length > 0 ? "Registration is closed for all configured academic years." : "No academic year is available for registration."} Please create the next academic year in Classes before registering a new student.</p>}
           <div className="rounded-xl bg-[#f0f4ff] p-3.5 sm:col-span-2"><h3 className="text-sm font-extrabold text-[#263d68]">Parent / guardian account</h3><p className="mt-0.5 text-xs text-[#7182a3]">This email will be used to sign in and view the student&apos;s report cards.</p></div>
           <label className={fieldLabel}>Parent/guardian name<input required value={f.guardian_name} onChange={set("guardian_name")} className={c} autoComplete="name" /></label>
           <label className={fieldLabel}>Relationship<input value={f.guardian_relation} onChange={set("guardian_relation")} placeholder="Father / Mother / Guardian" className={c} /></label>
@@ -68,7 +71,7 @@ export default function MuridBaru() {
         </div>
         <div className="flex flex-wrap justify-end gap-2 border-t border-[#e8edf7] bg-[#fbfcff] px-4 py-3 sm:px-5">
           <button type="button" onClick={clearForm} className="rounded-xl border border-[#dce5f7] bg-white px-4 py-2.5 text-sm font-bold text-[#52678f] hover:bg-[#f4f7ff]">Clear form</button>
-          <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#315ca6] to-[#24457f] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-900/15 transition hover:-translate-y-0.5 hover:shadow-lg"><UserRoundPlus size={16} />Register student</button>
+          <button type="submit" disabled={availableYears.length === 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#315ca6] to-[#24457f] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-900/15 transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"><UserRoundPlus size={16} />Register student</button>
         </div>
       </form>
     </>

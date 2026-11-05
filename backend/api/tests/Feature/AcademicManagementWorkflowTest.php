@@ -4,9 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Classroom;
 use App\Models\Enrollment;
-use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -14,8 +15,15 @@ class AcademicManagementWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
+
     public function test_academic_admin_can_create_teacher_class_and_student_then_read_the_roster(): void
     {
+        Carbon::setTestNow('2026-08-15 12:00:00');
         $academicAdmin = User::factory()->create(['role' => 'academic_admin']);
 
         $this->getJson('/api/classrooms')->assertUnauthorized();
@@ -197,6 +205,59 @@ class AcademicManagementWorkflowTest extends TestCase
             'start_date' => "{$nextYear}-09-01",
             'end_date' => "{$nextYear}-08-01",
         ])->assertUnprocessable();
+    }
+
+    public function test_new_student_registration_locks_one_month_after_the_academic_year_starts(): void
+    {
+        $academicAdmin = User::factory()->create(['role' => 'academic_admin']);
+        $this->actingAs($academicAdmin);
+        DB::table('academic_years')->where('term', '2026')->update([
+            'start_date' => '2026-08-01',
+            'end_date' => '2027-05-31',
+        ]);
+        DB::table('academic_years')->insert([
+            'term' => '2027',
+            'start_date' => '2027-08-01',
+            'end_date' => '2028-05-31',
+            'created_by' => $academicAdmin->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Carbon::setTestNow('2026-08-31 12:00:00');
+        $this->getJson('/api/academic-years')->assertOk()
+            ->assertJsonPath('1.term', '2026')
+            ->assertJsonPath('1.registration_locked', false)
+            ->assertJsonPath('1.registration_lock_date', '2026-09-01');
+
+        $this->postJson('/api/students', [
+            'name' => 'Before Lock Student',
+            'term' => '2026',
+            'guardian_name' => 'Before Lock Guardian',
+            'guardian_email' => 'before-lock@example.test',
+        ])->assertSuccessful();
+
+        Carbon::setTestNow('2026-09-01 12:00:00');
+        $this->getJson('/api/academic-years')->assertOk()
+            ->assertJsonPath('1.registration_locked', true)
+            ->assertJsonPath('0.registration_locked', false);
+
+        $this->postJson('/api/students', [
+            'name' => 'Locked Year Student',
+            'term' => '2026',
+            'guardian_name' => 'Locked Year Guardian',
+            'guardian_email' => 'locked-year@example.test',
+        ])->assertUnprocessable()
+            ->assertJsonPath('message', 'Pendaftaran siswa baru untuk tahun ajaran ini sudah ditutup. Silakan pilih tahun ajaran berikutnya.');
+        $this->assertDatabaseMissing('students', ['name' => 'Locked Year Student']);
+
+        $this->postJson('/api/students', [
+            'name' => 'Next Year Student',
+            'term' => '2027',
+            'guardian_name' => 'Next Year Guardian',
+            'guardian_email' => 'next-year@example.test',
+        ])->assertSuccessful()
+            ->assertJsonPath('student.name', 'Next Year Student');
     }
 
     public function test_classrooms_only_allow_one_of_the_eight_levels_once_per_year(): void

@@ -7,6 +7,7 @@ use App\Models\Enrollment;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -92,11 +93,18 @@ class StudentController extends Controller
         $terms = $this->terms();
         $years = DB::table('academic_years')->whereIn('term', $terms)->get()->keyBy('term');
 
-        return $terms->map(fn ($term) => [
-            'term' => $term,
-            'start_date' => $years->get($term)?->start_date ?? "{$term}-08-01",
-            'end_date' => $years->get($term)?->end_date ?? ((int) $term + 1).'-05-31',
-        ]);
+        return $terms->map(function ($term) use ($years) {
+            $startDate = $years->get($term)?->start_date ?? "{$term}-08-01";
+            $lockDate = $this->registrationLockDate($startDate);
+
+            return [
+                'term' => $term,
+                'start_date' => $startDate,
+                'end_date' => $years->get($term)?->end_date ?? ((int) $term + 1).'-05-31',
+                'registration_locked' => $this->registrationIsLocked($lockDate),
+                'registration_lock_date' => $lockDate,
+            ];
+        });
     }
 
     public function teachers()
@@ -252,6 +260,14 @@ class StudentController extends Controller
             'guardian_name' => 'required|string|max:100',
             'guardian_email' => 'required|email',
         ]);
+        $academicYear = DB::table('academic_years')->where('term', $d['term'])->first();
+        $startDate = $academicYear?->start_date ?? "{$d['term']}-08-01";
+        $lockDate = $this->registrationLockDate($startDate);
+        abort_if(
+            $this->registrationIsLocked($lockDate),
+            422,
+            'Pendaftaran siswa baru untuk tahun ajaran ini sudah ditutup. Silakan pilih tahun ajaran berikutnya.',
+        );
 
         return DB::transaction(function () use ($d) {
             $pw = null;
@@ -278,6 +294,16 @@ class StudentController extends Controller
 
             return ['student' => $s->load('guardian'), 'guardianPassword' => $pw];
         });
+    }
+
+    private function registrationLockDate(string $startDate): string
+    {
+        return Carbon::parse($startDate)->addMonthNoOverflow()->toDateString();
+    }
+
+    private function registrationIsLocked(string $lockDate): bool
+    {
+        return $lockDate <= Carbon::today('Asia/Jakarta')->toDateString();
     }
 
     private function validateTeacherAssignments(array $teacherIds, string $term, ?int $classroomId = null): void

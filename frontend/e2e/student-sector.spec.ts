@@ -15,7 +15,10 @@ test("academic admin registers a student with a sector selected from the approve
       name: "Academic Admin",
     }));
   });
-  await page.route("**/academic-years", (route) => route.fulfill({ json: [] }));
+  await page.route("**/academic-years", (route) => route.fulfill({ json: [
+    { term: "2026", start_date: "2026-08-01", end_date: "2027-05-31", registration_locked: true, registration_lock_date: "2026-09-01" },
+    { term: "2027", start_date: "2027-08-01", end_date: "2028-05-31", registration_locked: false, registration_lock_date: "2027-09-01" },
+  ] }));
   await page.route("**/students", async (route) => {
     const student = route.request().postDataJSON() as Record<string, string>;
     submittedStudent = student;
@@ -23,10 +26,12 @@ test("academic admin registers a student with a sector selected from the approve
   });
 
   await page.goto("/murid-baru");
-  await page.getByRole("button", { name: "Open student registration form" }).click();
   const sector = page.getByLabel("Sector");
   await expect(sector.locator("option")).toHaveCount(sectors.length + 1);
   expect(await sector.locator("option").evaluateAll((options) => options.slice(1).map((option) => (option as HTMLOptionElement).value))).toEqual(sectors);
+  const academicPeriod = page.getByLabel("Academic period");
+  await expect(academicPeriod.locator("option").filter({ hasText: "Locked for new registrations" })).toHaveAttribute("disabled", "");
+  await expect(academicPeriod).toHaveValue("2027");
 
   await page.getByLabel("Student name").fill("Sector Test Student");
   await sector.selectOption("Eden");
@@ -38,4 +43,5 @@ test("academic admin registers a student with a sector selected from the approve
 
   await expect(page.locator("[role='status']").filter({ hasText: "Sector Test Student was registered" })).toBeVisible();
   expect(submittedStudent?.sector).toBe("Eden");
+  expect(submittedStudent?.term).toBe("2027");
 });
