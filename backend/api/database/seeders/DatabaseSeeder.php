@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ReportCardExampleSeeder::class,
             ReEnrollmentExampleSeeder::class,
+            ExampleTeachersAndClassesSeeder::class,
         ]);
     }
 }

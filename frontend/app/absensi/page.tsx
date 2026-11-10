@@ -23,6 +23,7 @@ export default function Absensi() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [report, setReport] = useState<ReportRow[]>([]);
+  const [saving, setSaving] = useState(false);
   const canEdit = hasRole("teacher");
   useEffect(() => {
     api<AcademicYear[]>("/academic-years", []).then((items) => {
@@ -36,11 +37,16 @@ export default function Absensi() {
   const update = (id: number, key: "status" | "note", value: string) => setRows((items) => items.map((row) => row.id === id ? { ...row, [key]: value } as AttendanceRow : row));
   async function save() {
     const editableRows = rows.filter((row) => !row.published_at);
-    if (editableRows.length === 0) return;
-    await api<{ ok?: boolean }>("/attendance", {}, {
-      method: "POST",
-      body: JSON.stringify({ date, rows: editableRows }),
-    }, "Attendance saved successfully.");
+    if (editableRows.length === 0 || saving) return;
+    setSaving(true);
+    try {
+      await api<{ ok?: boolean }>("/attendance", {}, {
+        method: "POST",
+        body: JSON.stringify({ date, rows: editableRows }),
+      }, "Attendance saved successfully.");
+    } finally {
+      setSaving(false);
+    }
   }
   async function loadReport() { setReport(await api<ReportRow[]>(`/attendance/report?term=${encodeURIComponent(term)}&from=${from}&to=${to}`, [], undefined, "Attendance summary loaded.")); }
   function exportReport() { const token = session()?.token ?? ""; const url = `${BASE}/attendance/export?term=${encodeURIComponent(term)}&from=${from}&to=${to}`; fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: "text/csv" } }).then((response) => response.blob()).then((blob) => { const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `rekap-absensi-${term}.csv`; link.click(); }); }
@@ -101,7 +107,7 @@ export default function Absensi() {
           </tbody>
         </table>
       </div>
-      {canEdit && <div className="flex justify-end border-t border-[#e8edf7] bg-[#fbfcff] px-4 py-3 sm:px-5"><button onClick={save} disabled={!rows.some((row) => !row.published_at)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#315ca6] to-[#24457f] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-900/15 transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-45"><Save size={16} />Save attendance</button></div>}
+      {canEdit && <div className="flex justify-end border-t border-[#e8edf7] bg-[#fbfcff] px-4 py-3 sm:px-5"><button onClick={save} disabled={saving || !rows.some((row) => !row.published_at)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#315ca6] to-[#24457f] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-900/15 transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-45"><Save size={16} />{saving ? "Saving..." : "Save attendance"}</button></div>}
     </section>
 
     <section className="mt-6 overflow-hidden rounded-[1.5rem] border border-[#dce5f7] bg-white shadow-[0_12px_30px_rgba(32,58,112,.08)]">

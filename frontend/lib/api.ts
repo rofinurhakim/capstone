@@ -37,6 +37,9 @@ export function notify(message: string, type: "success" | "error" = "success") {
 }
 
 function englishError(message: string): string {
+  if (message.includes("UNIQUE constraint failed: attendances.enrollment_id, attendances.date")) {
+    return "Attendance for this student and date has already been saved. Refresh the page and try again.";
+  }
   const translations: Record<string, string> = {
     "Email atau kata sandi salah.": "The email or password is incorrect.",
     "Tautan tidak valid atau sudah kedaluwarsa.": "This link is invalid or has expired.",

@@ -119,10 +119,10 @@ Data contoh empat murid dilengkapi nilai, presensi, komentar guru, dan tema rapo
 |---|---|
 | Admin | `admin@kursus.test` |
 | Admin Akademik | `academic@kursus.test` |
-| Guru | `guru@kursus.test` |
+| Guru | `guru@kursus.test`, `guru2@kursus.test`, `guru3@kursus.test`, `guru4@kursus.test`, `guru5@kursus.test`, `guru6@kursus.test`, `guru7@kursus.test`, `guru8@kursus.test` |
 | Orang Tua/Wali | `ortu@kursus.test` |
 
-Akun ini hanya untuk pengujian lokal. Jangan gunakan di lingkungan produksi.
+Akun guru contoh dipetakan masing-masing ke satu level kelas BEC. Seeder melengkapi delapan level untuk tahun ajaran aktif dan berikutnya. Semua akun contoh memakai kata sandi `password`; akun ini hanya untuk pengujian lokal/demo dan jangan gunakan di lingkungan produksi.
 
 ## Peran pengguna
 
